@@ -19,26 +19,32 @@ module Verify_top #(parameter [10:0] N = 512)(
     localparam [3:0] ST_IDLE                  = 0;
     localparam [3:0] ST_HTP                   = 1;   //hash to point state
     localparam [3:0] ST_DECOMPRESS            = 2;   //decompress state
-    localparam [3:0] ST_POLYMUL               = 3;   //polynomial multiplication state
-    localparam [3:0] ST_POLYSUB               = 4;   //polynomial subtraction state
-    localparam [3:0] ST_CHECKNORM             = 5;   //norm check state
-    localparam [3:0] ST_DONE                  = 6;
+    localparam [3:0] ST_POLYMUL_I             = 3;   //polynomial multiplication consume state
+    localparam [3:0] ST_POLYMUL_O             = 4;   //polynomial multiplication output state
+    localparam [3:0] ST_POLYSUB               = 5;   //polynomial subtraction state
+    localparam [3:0] ST_CHECKNORM             = 6;   //norm check state
+    localparam [3:0] ST_DONE                  = 7;
 
     logic [3:0] state;
-    logic htp_valid, decompress_valid;   //i_valid
-    logic htp_ready, decompress_ready;   //i_ready
-    logic input_control_done, htp_done, decompress_done, poly_accessor_done; 
+    logic htp_valid, decompress_valid, pk_valid;   //i_valid
+    logic htp_ready, decompress_ready, pk_ready;   //i_ready
+    logic input_control_done, htp_done, decompress_done, polymul_done, poly_accessor_done; 
     logic htp_coef_valid, htp_coef_ready, decompress_coef_valid, decompress_coef_ready;
+    logic pmi_coef_valid, pmi_coef_ready, pmo_coef_valid, pmo_coef_ready;
     logic decompress_fail, checknorm_fail;
     logic [2:0] message_last_byte;
     logic [63:0] htp_message_input;
     logic [8*SIG_LEN_V-328-1:0] decompress_input;
-    logic [WIDTH -1:0] htp_coef, decompress_coef;
+    logic [N*WIDTH-1:0] pk, pmi, pmo;
+    logic [WIDTH -1:0] htp_coef, decompress_coef, pmi_coef, pmo_coef;
     logic [1:0] en;
     logic [16:0] poly_addr;
     logic [63:0] w_coef, r_coef;
 
     
+    assign pk_ready = (state == ST_POLYMUL_I);
+    assign pmi_coef_ready = (state == ST_POLYMUL_I);
+    assign pmo_coef_valid = (state == ST_POLYMUL_O);
     assign message_last_byte = message_byte_length[2:0];
     assign pass = !fail;
     assign done = (state == ST_DONE);
@@ -62,7 +68,17 @@ module Verify_top #(parameter [10:0] N = 512)(
                 end
                 ST_DECOMPRESS: begin
                     if (decompress_done) begin
-                        state <= ST_DONE;      //Temporarily set for testing
+                        state <= ST_POLYMUL_I;      //Temporarily set for testing
+                    end
+                end
+                ST_POLYMUL_I: begin
+                    if (polymul_done) begin
+                        state <= ST_POLYMUL_O;
+                    end
+                end
+                ST_POLYMUL_O: begin
+                    if (poly_accessor_done) begin
+                        state <= ST_DONE;
                     end
                 end
                 ST_DONE: begin
@@ -73,9 +89,31 @@ module Verify_top #(parameter [10:0] N = 512)(
         end
     end
 
-    //For fail
-    always @(posedge clk or negedge rst_n) begin
+    //for pmi
+    always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
+            pmi <= 'b0;
+        end
+        else if (state == ST_IDLE) begin
+            pmi <= 'b0;
+        end
+        else if (state == ST_POLYMUL_I && pmi_coef_valid && pmi_coef_ready) begin
+            pmi <= {pmi[N*WIDTH-15:0], pmi_coef};
+        end
+        else begin
+            pmi <= pmi;
+        end
+    end
+
+    //for pmo_coef
+    assign pmo_coef = pmo[ ((32'(N) - 32'({1'b0, poly_addr[9:0]})) * WIDTH - 14) +: 14 ];
+
+    //For fail
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            fail <= 'b0;
+        end
+        if (state == ST_IDLE) begin
             fail <= 'b0;
         end
         else if (state == ST_DECOMPRESS) begin
@@ -108,10 +146,14 @@ module Verify_top #(parameter [10:0] N = 512)(
         .decompress_valid(decompress_valid),
         .decompress_ready(decompress_ready),
 
+        //PolyMul Input Ports   Public Key
+        .pk(pk),
+        .pk_valid(pk_valid),
+        .pk_ready(pk_ready),
+
         //Done
         .done(input_control_done)
     );
-
 
     HashToPoint u_htp(
         .clk(clk),
@@ -130,7 +172,6 @@ module Verify_top #(parameter [10:0] N = 512)(
         .done(htp_done)             //The module finishes
     );
 
-
     Decompress u_decompress(
         .clk(clk),
         .rst_n(rst_n),
@@ -147,6 +188,16 @@ module Verify_top #(parameter [10:0] N = 512)(
         .done(decompress_done),        // High if all coefficients output or fail somewhere
         .fail(decompress_fail)         // High if output bottom
     );    
+    
+    PolyMul #(.N({21'b0, N})) u_polymul(
+        .clk(clk),
+        .rst_n(rst_n),
+        .start(start),
+        .a_in(pmi),
+        .b_in(pk),
+        .prod_out(pmo),
+        .done(polymul_done)
+    );
 
     Poly_Accessor #(.N(N)) u_poly_accessor(
         .clk(clk),
@@ -163,6 +214,16 @@ module Verify_top #(parameter [10:0] N = 512)(
         .decompress_coef(decompress_coef),
         .decompress_coef_valid(decompress_coef_valid),
         .decompress_coef_ready(decompress_coef_ready),
+
+        //PolyMul input ports  ........  Decompressed polynomial
+        .pmi_coef(pmi_coef),
+        .pmi_coef_valid(pmi_coef_valid),
+        .pmi_coef_ready(pmi_coef_ready),
+
+        //PolyMul output ports
+        .pmo_coef(pmo_coef),
+        .pmo_coef_valid(pmo_coef_valid),
+        .pmo_coef_ready(pmo_coef_ready),
         
         //PolyRAM ports
         .en(en), //{cen, wen}

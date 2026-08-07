@@ -6,7 +6,7 @@ module Poly_Accessor #(
     input  logic clk,
     input  logic rst_n,
     input  logic [3:0]  state,
-    //0: IDLE   1: HashToPoint   2: Decompress
+    //0: IDLE   1: HashToPoint   2: Decompress  3: PolyMul
     
     //htp ports
     input  logic [WIDTH-1:0] htp_coef,
@@ -17,6 +17,17 @@ module Poly_Accessor #(
     input  logic [WIDTH-1:0] decompress_coef,
     input  logic  decompress_coef_valid,
     output logic  decompress_coef_ready,
+
+    //PolyMul input ports  ........  Decompressed polynomial
+    output  logic [WIDTH-1:0] pmi_coef,
+    output  logic  pmi_coef_valid,
+    input   logic  pmi_coef_ready,
+
+    //PolyMul output ports
+    input  logic [WIDTH-1:0] pmo_coef,
+    input  logic  pmo_coef_valid,
+    output logic  pmo_coef_ready,
+
     
     //PolyRAM ports
     output  logic [1:0] en, //{cen, wen}
@@ -31,9 +42,12 @@ module Poly_Accessor #(
     //management of polynomial
     localparam [6:0] htp_addr = 0;
     localparam [6:0] decompress_addr = 1;
+    localparam [6:0] s_2h_addr = 2;
 
     assign htp_coef_ready = (state == 4'd1) && htp_coef_valid; 
     assign decompress_coef_ready = (state == 4'd2) && decompress_coef_valid; 
+    assign pmi_coef_valid = (state == 4'd3) && pmi_coef_ready; 
+    assign pmo_coef_ready = (state == 4'd4) && pmo_coef_valid; 
 
     //For i_counter
     always_ff @(posedge clk or negedge rst_n) begin
@@ -55,6 +69,16 @@ module Poly_Accessor #(
                         i_counter <= i_counter + 10'd1;
                     end
                 end
+                4'd3: begin
+                    if (pmi_coef_valid && pmi_coef_ready) begin
+                        i_counter <= i_counter + 10'd1;
+                    end
+                end
+                4'd4: begin
+                    if (pmo_coef_valid && pmo_coef_ready) begin
+                        i_counter <= i_counter + 10'd1;
+                    end
+                end
                 default: i_counter <= i_counter; 
             endcase
         end
@@ -73,7 +97,25 @@ module Poly_Accessor #(
                 4'd2: begin
                     w_coef <= {50'b0, decompress_coef};
                 end 
+                4'd4: begin
+                    w_coef <= {50'b0, pmo_coef};
+                end 
                 default: w_coef <= w_coef;
+            endcase
+        end
+    end
+
+    //For pmi_coef
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            pmi_coef <= 14'b0;
+        end
+        else begin
+            case (state)
+                4'd4: begin
+                    pmi_coef <= r_coef[13:0];
+                end 
+                default: pmi_coef <= pmi_coef;
             endcase
         end
     end
@@ -90,6 +132,12 @@ module Poly_Accessor #(
                 end 
                 4'd2: begin
                     poly_addr <= {decompress_addr, i_counter[9:0]};  //decompress polynomial is stored in PolyRAM1 
+                end 
+                4'd3: begin
+                    poly_addr <= {decompress_addr, i_counter[9:0]};  //decompress polynomial is stored in PolyRAM1 
+                end 
+                4'd4: begin
+                    poly_addr <= {s_2h_addr, i_counter[9:0]};  //s_2h polynomial is stored in PolyRAM2 
                 end 
                 default: poly_addr <= poly_addr;
             endcase
@@ -109,11 +157,19 @@ module Poly_Accessor #(
                 4'd2: begin
                     en <= {decompress_coef_valid , 1'b1};
                 end 
+                4'd3: begin     //read data
+                    en <= {pmi_coef_ready , 1'b0};
+                end 
+                4'd4: begin
+                    en <= {pmo_coef_valid , 1'b1};
+                end 
                 default: en <= en;
             endcase
         end
     end
 
     assign done = (state == 4'd1 && htp_coef_valid && htp_coef_ready && i_counter == N) || 
-                  (state == 4'd2 && decompress_coef_valid && decompress_coef_ready && i_counter == N);
+                  (state == 4'd2 && decompress_coef_valid && decompress_coef_ready && i_counter == N) ||
+                  (state == 4'd3 && pmi_coef_valid && pmi_coef_ready && i_counter == N) ||
+                  (state == 4'd4 && pmo_coef_valid && pmo_coef_ready && i_counter == N);
 endmodule

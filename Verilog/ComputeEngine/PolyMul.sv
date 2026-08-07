@@ -96,7 +96,7 @@ module PolyMul #(parameter int N = 512) (
                         ta = {18'b0, a_ntt_out[i*WIDTH +: WIDTH]};
                         tb = {18'b0, b_ntt_out[i*WIDTH +: WIDTH]};
                         tc = mod_mul(ta, tb);
-                        c_ntt[i*WIDTH +: WIDTH] = tc[13:0];
+                        c_ntt[i*WIDTH +: WIDTH] <= tc[13:0];
                     end
                     c_start <= 1'b1;
                     state <= ST_WAIT_INTT;

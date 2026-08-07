@@ -6,7 +6,7 @@ module Input_Control #(
     input   logic                        clk,
     input   logic                        rst_n,
     input   logic [3:0]                  state,  
-    //0: IDLE   1: HashToPoint   2: Decompress
+    //0: IDLE   1: HashToPoint   2: Decompress   3: PolyMul_I   4: PolyMul_I
     input   logic [9:0]                  message_byte_length,    //The length of message (bytes)
 
     input   logic [63:0]                 axi_data,
@@ -22,6 +22,11 @@ module Input_Control #(
     output  logic [8*SIG_LEN_V-328-1:0]      decompress_idata,
     output  logic                        decompress_valid,
     input   logic                        decompress_ready,
+    
+    //PolyMul Input Ports   Public Key
+    output logic [N*WIDTH-1:0]           pk,
+    output logic                         pk_valid,
+    input  logic                         pk_ready,
 
     //Done
     output  logic                        done
@@ -32,6 +37,7 @@ module Input_Control #(
     //I   0~83: Signature  84~84+MBL/8 : Message       85+MBL/197~MBL/8 : pk
     //V   0~159: Signature 160~160+MBL/8 : Message     161+MBL/8~385+MBL/8 : pk
     logic [8*SIG_LEN_V-328-1:0] sig_buffer;
+    logic [N*WIDTH-1:0] pk_buffer;
     logic [9:0] sig_first, sig_last, msg_first, msg_last, pk_first, pk_last;
 
     //The first and last chunk of sig/msg/pk
@@ -42,10 +48,9 @@ module Input_Control #(
     assign pk_first = (N == 512)? (10'd85 + (message_byte_length >> 3)) : (10'd161 + (message_byte_length >> 3));
     assign pk_last = (N == 512)? (10'd197 + (message_byte_length >> 3)) : (10'd385 + (message_byte_length >> 3));
 
-
-
     assign htp_valid = axi_valid && (((10'd4 >= i_counter)) || ((i_counter >= msg_first) && (msg_last >= i_counter)));
     assign decompress_valid = axi_valid && (i_counter >= sig_last);
+    assign pk_valid = axi_valid && (i_counter >= pk_last);
 
     //For i_counter
     always_ff @(posedge clk or negedge rst_n) begin
@@ -56,8 +61,11 @@ module Input_Control #(
             i_counter <= 'b0;
         end
         else begin
-            if (axi_valid && axi_ready) begin
+            if (axi_valid && axi_ready && (pk_last >= i_counter)) begin
                 i_counter <= i_counter + 10'b1;
+            end
+            else begin
+                i_counter <= i_counter;
             end
         end
     end
@@ -71,11 +79,15 @@ module Input_Control #(
         else if ((state == 4'd1) || (state == 4'd2)) begin
             axi_ready = (i_counter >= sig_last) ? decompress_ready : 1'b1;
         end
+        else if (state == 4'd3) begin
+            axi_ready = (i_counter >= pk_last) ? pk_ready : 1'b1;
+        end
     end
 
     assign htp_idata = axi_data;
     assign decompress_idata = (N == 512)? {sig_buffer[(8*SIG_LEN_I-328)-65 : 0], axi_data, 4912'b0} : {sig_buffer[(8*SIG_LEN_V-328)-65 : 0], axi_data};
     //4911 = 8*(SIG_LEN_V-SIG_LEN_I)
+    assign pk = {sig_buffer[N*WIDTH-65 : 0], axi_data};
 
     //For sig_buffer
     always_ff @(posedge clk or negedge rst_n) begin
@@ -96,6 +108,26 @@ module Input_Control #(
         end
     end
 
+    //For pk_buffer
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            pk_buffer <= 'b0;
+        end 
+        else if (pk_valid && pk_ready) begin
+            pk_buffer <= 'b0;
+        end
+        else if ((i_counter >= pk_first) && (pk_last >= i_counter)) begin
+            if (axi_valid && axi_ready) begin
+                pk_buffer       <= {pk_buffer[N*WIDTH-65 : 0], axi_data};
+            end
+        end
+        else begin
+            // Reset counter and buffer when leaving PolyMul state or in IDLE
+            pk_buffer       <= 'b0;
+        end
+    end
+
     assign done = (state == 4'd1 && htp_valid && htp_ready) || 
-                  (state == 4'd2 && decompress_valid && decompress_ready);
+                  (state == 4'd2 && decompress_valid && decompress_ready) ||
+                  (state == 4'd3 && pk_valid && pk_ready);
 endmodule
