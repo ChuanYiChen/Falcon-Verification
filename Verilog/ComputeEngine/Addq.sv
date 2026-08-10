@@ -27,7 +27,16 @@ module Addq (
     assign centered = (sum >= {1'b0, Q}) ? (sum - {1'b0, Q}) : sum;
     assign dout     = 14'(centered - HALFQ);
 
-    assign i_ready = (!o_valid) || o_ready;
-    assign o_valid = i_valid;
-
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            i_ready <= 1'b1;
+        end
+        else if (o_valid && (!o_ready))begin
+            i_ready <= 1'b0;
+        end
+        else begin
+            i_ready <= i_ready;
+        end
+    end
+    assign o_valid = i_valid && i_ready;
 endmodule

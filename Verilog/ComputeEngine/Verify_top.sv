@@ -29,14 +29,14 @@ module Verify_top #(parameter [10:0] N = 512)(
     logic htp_valid, decompress_valid, pk_valid;   //i_valid
     logic htp_ready, decompress_ready, pk_ready;   //i_ready
     logic input_control_done, htp_done, decompress_done, polymul_done, poly_accessor_done; 
-    logic htp_coef_valid, htp_coef_ready, decompress_coef_valid, decompress_coef_ready;
-    logic pmi_coef_valid, pmi_coef_ready, pmo_coef_valid, pmo_coef_ready;
+    logic htp_coef_valid, htp_coef_ready, decompress_coef_valid, decompress_coef_ready, c_coef_valid, s_2h_coef_valid, s1_coef_valid;
+    logic pmi_coef_valid, pmi_coef_ready, pmo_coef_valid, pmo_coef_ready, sub_ready, s1_coef_ready;
     logic decompress_fail, checknorm_fail;
     logic [2:0] message_last_byte;
     logic [63:0] htp_message_input;
     logic [8*SIG_LEN_V-328-1:0] decompress_input;
     logic [N*WIDTH-1:0] pk, pmi, pmo;
-    logic [WIDTH -1:0] htp_coef, decompress_coef, pmi_coef, pmo_coef;
+    logic [WIDTH -1:0] htp_coef, decompress_coef, pmi_coef, pmo_coef, c_coef, s_2h_coef, s1_coef;
     logic [1:0] enA, enB, enC;
     logic [16:0] poly_addrA, poly_addrB, poly_addrC;
     logic [63:0] w_coefA, w_coefB, w_coefC, r_coefA, r_coefB, r_coefC;
@@ -77,6 +77,11 @@ module Verify_top #(parameter [10:0] N = 512)(
                     end
                 end
                 ST_POLYMUL_O: begin
+                    if (poly_accessor_done) begin
+                        state <= ST_POLYSUB;
+                    end
+                end
+                ST_POLYSUB: begin
                     if (poly_accessor_done) begin
                         state <= ST_DONE;
                     end
@@ -199,6 +204,22 @@ module Verify_top #(parameter [10:0] N = 512)(
         .done(polymul_done)
     );
 
+    Addq u_addq(
+        .clk(clk),
+        .rst_n(rst_n),
+
+        .i_valid(c_coef_valid && s_2h_coef_valid),
+        .o_ready(s1_coef_ready),
+        .i_ready(sub_ready),
+        .o_valid(s1_coef_valid),
+
+        .din1(c_coef),              //c
+        .din2(s_2h_coef),              //s_2h
+        .dout(s1_coef),       //s_1
+
+        .sub(1'b1)   // 0:Add, 1:Sub
+    );
+
     Poly_Accessor #(.N(N)) u_poly_accessor(
         .clk(clk),
         .rst_n(rst_n),
@@ -224,6 +245,20 @@ module Verify_top #(parameter [10:0] N = 512)(
         .pmo_coef(pmo_coef),
         .pmo_coef_valid(pmo_coef_valid),
         .pmo_coef_ready(pmo_coef_ready),
+
+        //PolySub input ports
+        .c_coef(c_coef),
+        .c_coef_valid(c_coef_valid),
+        .c_coef_ready(sub_ready),
+
+        .s_2h_coef(s_2h_coef),
+        .s_2h_coef_valid(s_2h_coef_valid),
+        .s_2h_coef_ready(sub_ready),
+
+        //PolySub output ports
+        .s1_coef(s1_coef),
+        .s1_coef_valid(s1_coef_valid),
+        .s1_coef_ready(s1_coef_ready),
         
         //PolyRAM portsA
         .enA(enA), //{cen, wen}

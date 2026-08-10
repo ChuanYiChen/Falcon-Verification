@@ -28,6 +28,20 @@ module Poly_Accessor #(
     input  logic  pmo_coef_valid,
     output logic  pmo_coef_ready,
 
+    //PolySub input ports
+    output logic [WIDTH-1:0] c_coef,
+    output logic c_coef_valid,
+    input  logic c_coef_ready,
+
+    output logic [WIDTH-1:0] s_2h_coef,
+    output logic s_2h_coef_valid,
+    input  logic s_2h_coef_ready,
+
+    //PolySub output ports
+    input  logic [WIDTH-1:0] s1_coef,
+    input  logic  s1_coef_valid,
+    output logic  s1_coef_ready,
+
     //PolyRAM portsA
     output  logic [1:0] enA, //{cen, wen}
     output  logic [63:0] w_coefA,
@@ -54,11 +68,15 @@ module Poly_Accessor #(
     localparam [6:0] htp_addr = 0;
     localparam [6:0] decompress_addr = 1;
     localparam [6:0] s_2h_addr = 2;
+    localparam [6:0] s1_addr = 3;
 
     assign htp_coef_ready = (state == 4'd1) && htp_coef_valid; 
     assign decompress_coef_ready = (state == 4'd2) && decompress_coef_valid; 
     assign pmi_coef_valid = (state == 4'd3) && pmi_coef_ready; 
-    assign pmo_coef_ready = (state == 4'd4) && pmo_coef_valid; 
+    assign pmo_coef_ready = (state == 4'd4) && pmo_coef_valid;
+    assign c_coef_valid = (state == 4'd5) && c_coef_ready; 
+    assign s_2h_coef_valid = (state == 4'd5) && s_2h_coef_ready;
+    assign s1_coef_ready = (state == 4'd5) && s1_coef_valid; 
 
     //For i_counter
     always_ff @(posedge clk or negedge rst_n) begin
@@ -87,6 +105,11 @@ module Poly_Accessor #(
                 end
                 4'd4: begin
                     if (pmo_coef_valid && pmo_coef_ready) begin
+                        i_counter <= i_counter + 10'd1;
+                    end
+                end
+                4'd5: begin
+                    if (c_coef_valid && c_coef_ready && s_2h_coef_valid &&s_2h_coef_ready) begin
                         i_counter <= i_counter + 10'd1;
                     end
                 end
@@ -119,6 +142,11 @@ module Poly_Accessor #(
                     w_coefB <= 64'b0;
                     w_coefC <= 64'b0;
                 end 
+                4'd5: begin
+                    w_coefA <= 64'b0;
+                    w_coefB <= 64'b0;
+                    w_coefC <= {50'b0, s1_coef};
+                end 
                 default: begin
                     w_coefA <= w_coefA;
                     w_coefB <= w_coefB;
@@ -128,17 +156,27 @@ module Poly_Accessor #(
         end
     end
 
-    //For pmi_coef
+    //For r_coef
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             pmi_coef <= 14'b0;
+            c_coef <= 14'b0;
+            s_2h_coef <= 14'b0;
         end
         else begin
             case (state)
                 4'd4: begin
                     pmi_coef <= r_coefA[13:0];
                 end 
-                default: pmi_coef <= pmi_coef;
+                4'd5: begin
+                    c_coef <= r_coefA[13:0];
+                    s_2h_coef <= r_coefA[13:0];
+                end 
+                default: begin
+                    pmi_coef <= pmi_coef;
+                    c_coef <= c_coef;
+                    s_2h_coef <= s_2h_coef;
+                end
             endcase
         end
     end
@@ -171,6 +209,11 @@ module Poly_Accessor #(
                     poly_addrA <= {s_2h_addr, i_counter[9:0]};  //s_2h polynomial is stored in PolyRAM2 
                     poly_addrB <= 17'b0;
                     poly_addrC <= 17'b0;
+                end 
+                4'd5: begin
+                    poly_addrA <= {htp_addr, i_counter[9:0]};  //s_2h polynomial is stored in PolyRAM2 
+                    poly_addrB <= {s_2h_addr, i_counter[9:0]};
+                    poly_addrC <= {s1_addr, i_counter[9:0]} - 17'b1;
                 end 
                 default: begin
                     poly_addrA <= poly_addrA;
@@ -210,6 +253,11 @@ module Poly_Accessor #(
                     enB <= 'b0;
                     enC <= 'b0;
                 end 
+                4'd5: begin
+                    enA <= {c_coef_ready , 1'b0};
+                    enB <= {s_2h_coef_ready , 1'b0};
+                    enC <= {s1_coef_valid , 1'b1};
+                end 
                 default: begin 
                     enA <= enA;
                     enB <= enB;
@@ -222,5 +270,6 @@ module Poly_Accessor #(
     assign done = (state == 4'd1 && htp_coef_valid && htp_coef_ready && i_counter == N) || 
                   (state == 4'd2 && decompress_coef_valid && decompress_coef_ready && i_counter == N) ||
                   (state == 4'd3 && pmi_coef_valid && pmi_coef_ready && i_counter == N) ||
-                  (state == 4'd4 && pmo_coef_valid && pmo_coef_ready && i_counter == N);
+                  (state == 4'd4 && pmo_coef_valid && pmo_coef_ready && i_counter == N) ||
+                  (state == 4'd5 && s1_coef_valid && s1_coef_ready && i_counter == N);
 endmodule
