@@ -28,12 +28,23 @@ module Poly_Accessor #(
     input  logic  pmo_coef_valid,
     output logic  pmo_coef_ready,
 
-    
-    //PolyRAM ports
-    output  logic [1:0] en, //{cen, wen}
-    output  logic [63:0] w_coef,
-    input   logic [63:0] r_coef,
-    output  logic [16:0] poly_addr,
+    //PolyRAM portsA
+    output  logic [1:0] enA, //{cen, wen}
+    output  logic [63:0] w_coefA,
+    input   logic [63:0] r_coefA,
+    output  logic [16:0] poly_addrA,
+
+    //PolyRAM portsB
+    output  logic [1:0] enB, //{cen, wen}
+    output  logic [63:0] w_coefB,
+    input   logic [63:0] r_coefB,
+    output  logic [16:0] poly_addrB,
+
+    //PolyRAM portsC
+    output  logic [1:0] enC, //{cen, wen}
+    output  logic [63:0] w_coefC,
+    input   logic [63:0] r_coefC,
+    output  logic [16:0] poly_addrC,
 
     output  logic        done
 );
@@ -87,20 +98,32 @@ module Poly_Accessor #(
     //For w_coef
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            w_coef <= 64'b0;
+            w_coefA <= 64'b0;
+            w_coefB <= 64'b0;
+            w_coefC <= 64'b0;
         end
         else begin
             case (state)
                 4'd1: begin
-                    w_coef <= {50'b0, htp_coef};
+                    w_coefA <= {50'b0, htp_coef};
+                    w_coefB <= 64'b0;
+                    w_coefC <= 64'b0;
                 end 
                 4'd2: begin
-                    w_coef <= {50'b0, decompress_coef};
+                    w_coefA <= {50'b0, decompress_coef};
+                    w_coefB <= 64'b0;
+                    w_coefC <= 64'b0;
                 end 
                 4'd4: begin
-                    w_coef <= {50'b0, pmo_coef};
+                    w_coefA <= {50'b0, pmo_coef};
+                    w_coefB <= 64'b0;
+                    w_coefC <= 64'b0;
                 end 
-                default: w_coef <= w_coef;
+                default: begin
+                    w_coefA <= w_coefA;
+                    w_coefB <= w_coefB;
+                    w_coefC <= w_coefC;
+                end
             endcase
         end
     end
@@ -113,7 +136,7 @@ module Poly_Accessor #(
         else begin
             case (state)
                 4'd4: begin
-                    pmi_coef <= r_coef[13:0];
+                    pmi_coef <= r_coefA[13:0];
                 end 
                 default: pmi_coef <= pmi_coef;
             endcase
@@ -123,23 +146,37 @@ module Poly_Accessor #(
     //For poly_addr
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            poly_addr <= 17'b0;
+            poly_addrA <= 17'b0;
+            poly_addrB <= 17'b0;
+            poly_addrC <= 17'b0;
         end
         else begin
             case (state)
                 4'd1: begin
-                    poly_addr <= {htp_addr, i_counter[9:0]};   //htp polynomial is stored in PolyRAM0 
+                    poly_addrA <= {htp_addr, i_counter[9:0]};   //htp polynomial is stored in PolyRAM0 
+                    poly_addrB <= 17'b0;
+                    poly_addrC <= 17'b0;
                 end 
                 4'd2: begin
-                    poly_addr <= {decompress_addr, i_counter[9:0]};  //decompress polynomial is stored in PolyRAM1 
+                    poly_addrA <= {decompress_addr, i_counter[9:0]};  //decompress polynomial is stored in PolyRAM1 
+                    poly_addrB <= 17'b0;
+                    poly_addrC <= 17'b0;
                 end 
                 4'd3: begin
-                    poly_addr <= {decompress_addr, i_counter[9:0]};  //decompress polynomial is stored in PolyRAM1 
+                    poly_addrA <= {decompress_addr, i_counter[9:0]};  //decompress polynomial is stored in PolyRAM1 
+                    poly_addrB <= 17'b0;
+                    poly_addrC <= 17'b0;
                 end 
                 4'd4: begin
-                    poly_addr <= {s_2h_addr, i_counter[9:0]};  //s_2h polynomial is stored in PolyRAM2 
+                    poly_addrA <= {s_2h_addr, i_counter[9:0]};  //s_2h polynomial is stored in PolyRAM2 
+                    poly_addrB <= 17'b0;
+                    poly_addrC <= 17'b0;
                 end 
-                default: poly_addr <= poly_addr;
+                default: begin
+                    poly_addrA <= poly_addrA;
+                    poly_addrB <= poly_addrB;
+                    poly_addrC <= poly_addrC;
+                end
             endcase
         end
     end
@@ -147,23 +184,37 @@ module Poly_Accessor #(
     //For wen and cen   en = {cen, wen}
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            en <= 'b0;
+            enA <= 'b0;
+            enB <= 'b0;
+            enC <= 'b0;
         end
         else begin
             case (state)
                 4'd1: begin
-                    en <= {htp_coef_valid , 1'b1};
+                    enA <= {htp_coef_valid , 1'b1};
+                    enB <= 'b0;
+                    enC <= 'b0;
                 end 
                 4'd2: begin
-                    en <= {decompress_coef_valid , 1'b1};
+                    enA <= {decompress_coef_valid , 1'b1};
+                    enB <= 'b0;
+                    enC <= 'b0;
                 end 
                 4'd3: begin     //read data
-                    en <= {pmi_coef_ready , 1'b0};
+                    enA <= {pmi_coef_ready , 1'b0};
+                    enB <= 'b0;
+                    enC <= 'b0;
                 end 
                 4'd4: begin
-                    en <= {pmo_coef_valid , 1'b1};
+                    enA <= {pmo_coef_valid , 1'b1};
+                    enB <= 'b0;
+                    enC <= 'b0;
                 end 
-                default: en <= en;
+                default: begin 
+                    enA <= enA;
+                    enB <= enB;
+                    enC <= enC;
+                end
             endcase
         end
     end

@@ -37,9 +37,9 @@ module Verify_top #(parameter [10:0] N = 512)(
     logic [8*SIG_LEN_V-328-1:0] decompress_input;
     logic [N*WIDTH-1:0] pk, pmi, pmo;
     logic [WIDTH -1:0] htp_coef, decompress_coef, pmi_coef, pmo_coef;
-    logic [1:0] en;
-    logic [16:0] poly_addr;
-    logic [63:0] w_coef, r_coef;
+    logic [1:0] enA, enB, enC;
+    logic [16:0] poly_addrA, poly_addrB, poly_addrC;
+    logic [63:0] w_coefA, w_coefB, w_coefC, r_coefA, r_coefB, r_coefC;
 
     
     assign pk_ready = (state == ST_POLYMUL_I);
@@ -106,7 +106,7 @@ module Verify_top #(parameter [10:0] N = 512)(
     end
 
     //for pmo_coef
-    assign pmo_coef = pmo[ ((32'(N) - 32'({1'b0, poly_addr[9:0]})) * WIDTH - 14) +: 14 ];
+    assign pmo_coef = pmo[ ((32'(N) - 32'({1'b0, poly_addrA[9:0]})) * WIDTH - 14) +: 14 ];
 
     //For fail
     always_ff @(posedge clk or negedge rst_n) begin
@@ -225,21 +225,44 @@ module Verify_top #(parameter [10:0] N = 512)(
         .pmo_coef_valid(pmo_coef_valid),
         .pmo_coef_ready(pmo_coef_ready),
         
-        //PolyRAM ports
-        .en(en), //{cen, wen}
-        .w_coef(w_coef),
-        .r_coef(r_coef),
-        .poly_addr(poly_addr),
+        //PolyRAM portsA
+        .enA(enA), //{cen, wen}
+        .w_coefA(w_coefA),
+        .r_coefA(r_coefA),
+        .poly_addrA(poly_addrA),
+
+        //PolyRAM portsB
+        .enB(enB), //{cen, wen}
+        .w_coefB(w_coefB),
+        .r_coefB(r_coefB),
+        .poly_addrB(poly_addrB),
+
+         //PolyRAM portsC
+        .enC(enC), //{cen, wen}
+        .w_coefC(w_coefC),
+        .r_coefC(r_coefC),
+        .poly_addrC(poly_addrC),
 
         .done(poly_accessor_done)
     );
 
     PolyRAM    u_polyram(
         .clk(clk),
-        .addr(poly_addr),
-        .wdata(w_coef),
-        .cen(en[1]),
-        .wen(en[0]),
-        .rdata(r_coef)
+        .addrA(poly_addrA),
+        .wdataA(w_coefA),
+        .cenA(enA[1]),
+        .wenA(enA[0]),
+        .rdataA(r_coefA),
+        .addrB(poly_addrB),
+        .wdataB(w_coefB),
+        .cenB(enB[1]),
+        .wenB(enB[0]),
+        .rdataB(r_coefB),
+        .addrC(poly_addrC),
+        .wdataC(w_coefC),
+        .cenC(enC[1]),
+        .wenC(enC[0]),
+        .rdataC(r_coefC)
     );
+
 endmodule

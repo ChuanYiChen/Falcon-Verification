@@ -5,21 +5,49 @@ module PolyRAM# (
 )
 (
     input clk,
-    input [ADDR_WIDTH - 1:0] addr,
-    input [COEFF_WIDTH - 1:0] wdata,
-    input cen,
-    input wen,
-    output logic [COEFF_WIDTH - 1:0] rdata
+    input [ADDR_WIDTH - 1:0] addrA,
+    input [COEFF_WIDTH - 1:0] wdataA,
+    input cenA,
+    input wenA,
+    output logic [COEFF_WIDTH - 1:0] rdataA,
+    input [ADDR_WIDTH - 1:0] addrB,
+    input [COEFF_WIDTH - 1:0] wdataB,
+    input cenB,
+    input wenB,
+    output logic [COEFF_WIDTH - 1:0] rdataB,
+    input [ADDR_WIDTH - 1:0] addrC,
+    input [COEFF_WIDTH - 1:0] wdataC,
+    input cenC,
+    input wenC,
+    output logic [COEFF_WIDTH - 1:0] rdataC
 );
 
     logic [COEFF_WIDTH-1:0] mem [DEPTH];
 
     always_ff @(posedge clk) begin
-        if (cen) begin
-            if (wen) begin
-                mem[addr] <= wdata;   
+        if (cenA) begin
+            if (wenA) begin
+                mem[addrA] <= wdataA;   
             end
-            rdata <= mem[addr];
+            rdataA <= mem[addrA];
+        end       
+    end
+
+    always_ff @(posedge clk) begin
+        if (cenB) begin
+            if (wenB) begin
+                mem[addrB] <= wdataB;   
+            end
+            rdataB <= mem[addrB];
+        end       
+    end
+
+    always_ff @(posedge clk) begin
+        if (cenC) begin
+            if (wenC) begin
+                mem[addrC] <= wdataC;   
+            end
+            rdataC <= mem[addrC];
         end       
     end
 
