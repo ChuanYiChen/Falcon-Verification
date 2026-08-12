@@ -1,0 +1,11 @@
+beartype==0.22.9
+cocotb==2.0.1
+find_libpython==0.5.1
+iniconfig==2.3.0
+numpy==2.5.1
+packaging==26.2
+pluggy==1.6.0
+pycryptodome==3.23.0
+Pygments==2.20.0
+pytest==9.1.1
+scipy==1.18.0
