@@ -1,0 +1,7 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1786511367" />
+    <testcase name="shake_matches_hashlib" classname="test_shake256" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/shake256/tests/test_shake256.py" lineno="51" time="0.005172014236450195" sim_time_ns="390.0" ratio_time="75405.82492048126" />
+    <testcase name="shake_random_words_match_hashlib" classname="test_shake256" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/shake256/tests/test_shake256.py" lineno="108" time="0.1292877197265625" sim_time_ns="8980.0" ratio_time="69457.48613242063" />
+  </testsuite>
+</testsuites>

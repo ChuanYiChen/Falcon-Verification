@@ -1,0 +1,7 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1786510096" />
+    <testcase name="keccak_zero_state" classname="test_keccak" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/keccak/tests/test_keccak.py" lineno="40" time="0.00605010986328125" sim_time_ns="280.0" ratio_time="46280.15132408575" />
+    <testcase name="keccak_random_states" classname="test_keccak" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/keccak/tests/test_keccak.py" lineno="70" time="0.03752589225769043" sim_time_ns="2800.0" ratio_time="74615.14787636203" />
+  </testsuite>
+</testsuites>
