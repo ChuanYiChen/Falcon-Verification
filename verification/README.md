@@ -13,7 +13,12 @@ The verification suite covers:
 - `cocotb` and `cocotb-tools` installed in the Python environment.
 - Verilog design sources available at `../Verilog/ComputeEngine` and `../Verilog/falcon_pkg.sv` relative to this verification folder.
 
-The repository includes a local virtual environment at `verilog_venv`.
+Create a virtual environment and install the dependencies
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
 ## Setup
 
@@ -21,7 +26,7 @@ Activate the local verification environment:
 
 ```bash
 cd /Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification
-source verilog_venv/bin/activate
+source venv/bin/activate
 ```
 
 If you need to install dependencies manually:
