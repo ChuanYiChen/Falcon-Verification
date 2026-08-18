@@ -170,7 +170,7 @@ module Poly_Accessor #(
                 end 
                 4'd5: begin
                     c_coef <= r_coefA[13:0];
-                    s_2h_coef <= r_coefA[13:0];
+                    s_2h_coef <= r_coefB[13:0];
                 end 
                 default: begin
                     pmi_coef <= pmi_coef;
