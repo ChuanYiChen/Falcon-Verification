@@ -103,6 +103,9 @@ async def hash_to_point_matches_python_model(dut):
             f"Sec_LV={sec_lv} mismatch: got {len(got)} coefficients, expected {len(expected)}"
         )
 
+        await RisingEdge(dut.done)
+        await RisingEdge(dut.clk)
+
 
 @cocotb.test()
 async def hash_to_point_random_messages_match_python_model(dut):
@@ -126,6 +129,9 @@ async def hash_to_point_random_messages_match_python_model(dut):
             assert got == expected, (
                 f"Sec_LV={sec_lv} random message mismatch: got {len(got)} coefficients, expected {len(expected)}"
             )
+
+            await RisingEdge(dut.done)
+            await RisingEdge(dut.clk)
 
 
 def test_hash_to_point_runner() -> None:
