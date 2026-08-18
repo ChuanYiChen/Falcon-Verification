@@ -83,8 +83,21 @@ module CheckNorm (
     assign o_valid = (state == ST_VALIDATE);
 
     //For i_ready
-    assign i_ready = (state == ST_ACCUMULATE) && !(counter == N && i_valid);
-
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            i_ready <= 'b1;
+        end
+        else if (state == ST_ACCUMULATE) begin
+            if (counter == N) begin
+                i_ready <= 'b0;
+            end
+        end
+        else begin
+            i_ready <= i_ready;
+        end
+        
+    end
+    
     //For square_sum
     always_ff @( posedge clk or negedge rst_n ) begin
         if (~rst_n) begin

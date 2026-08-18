@@ -28,15 +28,16 @@ module Verify_top #(parameter [10:0] N = 512)(
     logic [3:0] state;
     logic htp_valid, decompress_valid, pk_valid;   //i_valid
     logic htp_ready, decompress_ready, pk_ready;   //i_ready
-    logic input_control_done, htp_done, decompress_done, polymul_done, poly_accessor_done; 
+    logic input_control_done, htp_done, decompress_done, polymul_done, poly_accessor_done, checknorm_done; 
     logic htp_coef_valid, htp_coef_ready, decompress_coef_valid, decompress_coef_ready, c_coef_valid, s_2h_coef_valid, s1_coef_valid;
     logic pmi_coef_valid, pmi_coef_ready, pmo_coef_valid, pmo_coef_ready, sub_ready, s1_coef_ready;
-    logic decompress_fail, checknorm_fail;
+    logic checknorm_valid, checknorm_ready, checknorm_in1_valid, checknorm_in2_valid, checknorm_in_ready;
+    logic decompress_fail, checknorm_pass;
     logic [2:0] message_last_byte;
     logic [63:0] htp_message_input;
     logic [8*SIG_LEN_V-328-1:0] decompress_input;
     logic [N*WIDTH-1:0] pk, pmi, pmo;
-    logic [WIDTH -1:0] htp_coef, decompress_coef, pmi_coef, pmo_coef, c_coef, s_2h_coef, s1_coef;
+    logic [WIDTH -1:0] htp_coef, decompress_coef, pmi_coef, pmo_coef, c_coef, s_2h_coef, s1_coef, checknorm_in1, checknorm_in2;
     logic [1:0] enA, enB, enC;
     logic [16:0] poly_addrA, poly_addrB, poly_addrC;
     logic [63:0] w_coefA, w_coefB, w_coefC, r_coefA, r_coefB, r_coefC;
@@ -48,6 +49,8 @@ module Verify_top #(parameter [10:0] N = 512)(
     assign message_last_byte = message_byte_length[2:0];
     assign pass = !fail;
     assign done = (state == ST_DONE);
+    assign checknorm_done = checknorm_valid && checknorm_ready;
+    assign checknorm_ready = (state == ST_CHECKNORM);
 
     //For finite state machine
     always_ff @(posedge clk or negedge rst_n) begin
@@ -83,6 +86,11 @@ module Verify_top #(parameter [10:0] N = 512)(
                 end
                 ST_POLYSUB: begin
                     if (poly_accessor_done) begin
+                        state <= ST_CHECKNORM;
+                    end
+                end
+                ST_CHECKNORM: begin
+                    if (checknorm_done) begin
                         state <= ST_DONE;
                     end
                 end
@@ -124,7 +132,11 @@ module Verify_top #(parameter [10:0] N = 512)(
         else if (state == ST_DECOMPRESS) begin
             fail <= fail || decompress_fail;
         end
-        //To Do: checknorm fail
+        else if (state == ST_CHECKNORM) begin
+            if (checknorm_valid) begin
+                fail <= fail || (!checknorm_pass);
+            end
+        end
         else begin
             fail <= fail;
         end
@@ -220,6 +232,22 @@ module Verify_top #(parameter [10:0] N = 512)(
         .sub(1'b1)   // 0:Add, 1:Sub
     );
 
+    CheckNorm u_checknorm(
+        .clk(clk),
+        .rst_n(rst_n),
+
+        .i_valid(checknorm_in1_valid && checknorm_in2_valid),
+        .o_ready(checknorm_ready),
+        .s1_din(checknorm_in1),      // Unsigned [0, 12288]
+        .s2_din(checknorm_in2),      // Unsigned [0, 12288]
+        .Sec_LV(Sec_LV),      //0: Level I, 1: Level V
+    
+    // Downstream Status Interface
+        .o_valid(checknorm_valid),
+        .i_ready(checknorm_in_ready),
+        .pass(checknorm_pass)          // High if norm <= selected BETA_SQ
+    );
+
     Poly_Accessor #(.N(N)) u_poly_accessor(
         .clk(clk),
         .rst_n(rst_n),
@@ -259,6 +287,16 @@ module Verify_top #(parameter [10:0] N = 512)(
         .s1_coef(s1_coef),
         .s1_coef_valid(s1_coef_valid),
         .s1_coef_ready(s1_coef_ready),
+
+        //Checknorm Ports
+        .checknorm_in1(checknorm_in1),    //s1
+        .checknorm_in1_valid(checknorm_in1_valid),
+        .checknorm_in1_ready(checknorm_in_ready),
+
+        .checknorm_in2(checknorm_in2),       //s2
+        .checknorm_in2_valid(checknorm_in2_valid),
+        .checknorm_in2_ready(checknorm_in_ready),
+
         
         //PolyRAM portsA
         .enA(enA), //{cen, wen}
