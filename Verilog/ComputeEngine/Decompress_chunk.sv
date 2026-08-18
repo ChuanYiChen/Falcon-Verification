@@ -4,6 +4,7 @@ module Decompress_chunk(
     input  logic                         clk,
     input  logic                         rst_n,
 
+    input  logic                         start,
     input  logic                         sig_valid,
     input  logic                         coef_ready,
     input  logic [63:0]                  sig,        
@@ -54,6 +55,10 @@ module Decompress_chunk(
     //For FSM
     always_ff @(posedge clk or negedge rst_n) begin 
         if (!rst_n) begin
+            state <= ST_IDLE;
+            next_state <= ST_IDLE;
+        end
+        else if (start) begin
             state <= ST_IDLE;
             next_state <= ST_IDLE;
         end
@@ -112,6 +117,10 @@ module Decompress_chunk(
             neg    <= 'b0;
             s_prime <= 'b0;
         end
+        else if (start) begin
+            neg    <= 'b0;
+            s_prime <= 'b0;
+        end
         else begin
             case (state)
                 ST_IDLE: begin
@@ -139,6 +148,10 @@ module Decompress_chunk(
     //For k, success_genk
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
+            k <= 'b0;
+            success_genk <= 'b0;
+        end
+        else if (start) begin
             k <= 'b0;
             success_genk <= 'b0;
         end
@@ -203,6 +216,9 @@ module Decompress_chunk(
         if (!rst_n) begin
             coef <= 'b0;
         end
+        else if (start) begin
+            coef <= 'b0;
+        end
         else begin
             case (state)
                 ST_IDLE: begin
@@ -224,6 +240,10 @@ module Decompress_chunk(
     //For buffer and valid_buffer
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
+            buffer <= 128'b0;
+            valid_buffer <= 8'd128;
+        end
+        else if (start) begin
             buffer <= 128'b0;
             valid_buffer <= 8'd128;
         end
@@ -304,6 +324,9 @@ module Decompress_chunk(
         if (!rst_n) begin
             idx <= 'b0;
         end
+        else if (start) begin
+            idx <= 'b0;
+        end
         else begin
             case (state)
                 ST_IDLE : begin
@@ -325,6 +348,9 @@ module Decompress_chunk(
     //For the fail, once failed, fail until all coefficients output
     always_ff @(posedge clk or negedge rst_n) begin 
         if (!rst_n) begin
+            fail <= 'b0;
+        end
+        else if (start) begin
             fail <= 'b0;
         end
         else begin

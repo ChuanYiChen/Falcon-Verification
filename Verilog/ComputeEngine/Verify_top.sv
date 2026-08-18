@@ -32,7 +32,7 @@ module Verify_top #(parameter [10:0] N = 512)(
     logic decompress_fail, checknorm_fail;
     logic [2:0] message_last_byte;
     logic [63:0] htp_message_input;
-    logic [8*SIG_LEN_V-328-1:0] decompress_input;
+    logic [63:0] decompress_input;
     logic [WIDTH -1:0] htp_coef, decompress_coef;
     logic [1:0] en;
     logic [16:0] poly_addr;
@@ -131,7 +131,7 @@ module Verify_top #(parameter [10:0] N = 512)(
     );
 
 
-    Decompress u_decompress(
+    Decompress_chunk u_decompress(
         .clk(clk),
         .rst_n(rst_n),
         .start(start),
