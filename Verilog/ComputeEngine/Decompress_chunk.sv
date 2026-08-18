@@ -23,8 +23,9 @@ module Decompress_chunk(
 
     logic [WIDTH-1:0] s_prime;
     logic [13:0] k;
-    logic        neg;
+    logic       neg;
     logic coef_fail;
+    logic success_genk;
     logic string_fail;
     logic need_consume;
     logic [7:0] valid_buffer;   //buffer[127:valid_buffer] are meaningful bits
@@ -72,16 +73,15 @@ module Decompress_chunk(
             end
         end
         else if (state == ST_GENK) begin
-            if (need_consume) begin
-                state <= ST_CONSUME;
-                next_state <= ST_GENCOEF;
+            if (success_genk) begin
+                state <= ST_GENCOEF;
             end
-            else if (buffer == 'b0) begin
+            else if (need_consume) begin
                 state <= ST_CONSUME;
                 next_state <= ST_GENK;
             end
             else begin
-                state <= ST_GENCOEF;
+                state <= ST_GENK;
             end
         end
         else if (state == ST_GENCOEF) begin
@@ -136,34 +136,63 @@ module Decompress_chunk(
         end
     end
 
-    //For k
+    //For k, success_genk
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             k <= 'b0;
+            success_genk <= 'b0;
         end
         else begin
             case (state)
                 ST_IDLE: begin 
                     k <= 'b0;
+                    success_genk <= 'b0;
                 end
                 ST_GENS: begin
                     k <= 'b0;
+                    success_genk <= 'b0;
                 end
                 ST_GENK: begin
-                    if (buffer == 'b0) begin
+                    if (buffer == 128'b0) begin
                         k <= k + 14'd128 - {6'b0, valid_buffer};
+                        success_genk <= 'b0;
+                    end
+                    else if (buffer[127:64] == 64'b0) begin
+                        k <= k + 14'd64 - {6'b0, valid_buffer};
+                        success_genk <= 'b0;
+                    end
+                    else if (buffer[127:96] == 32'b0) begin
+                        k <= k + 14'd32 - {6'b0, valid_buffer};
+                        success_genk <= 'b0;
+                    end
+                    else if (buffer[127:112] == 16'b0) begin
+                        k <= k + 14'd16 - {6'b0, valid_buffer};
+                        success_genk <= 'b0;
+                    end
+                    else if (buffer[127:120] == 8'b0) begin
+                        k <= k + 14'd8 - {6'b0, valid_buffer};
+                        success_genk <= 'b0;
+                    end
+                    else if (buffer[127:124] == 4'b0) begin
+                        k <= k + 14'd4 - {6'b0, valid_buffer};
+                        success_genk <= 'b0;
+                    end
+                    else if (buffer[127:126] == 2'b0) begin
+                        k <= k + 14'd2 - {6'b0, valid_buffer};
+                        success_genk <= 'b0;
+                    end
+                    else if (buffer[127] == 1'b0) begin
+                        k <= k + 14'd1 - {6'b0, valid_buffer};
+                        success_genk <= 'b0;
                     end
                     else begin
-                        for (int i = 127; i >= 0; i--) begin
-                            if (buffer[i]) begin
-                                k <= k + 14'(127 - i);
-                                break;
-                            end
-                        end
+                        k <= k;
+                        success_genk <= 'b1;
                     end
                 end
                 default: begin 
                     k <= k;
+                    success_genk <= success_genk;
                 end
             endcase
         end
@@ -221,14 +250,41 @@ module Decompress_chunk(
                         buffer <= 128'b0;
                         valid_buffer <= 8'd128;
                     end
+                    else if (buffer[127:64] == 64'b0) begin
+                            buffer <= buffer << 64;
+                            valid_buffer <= valid_buffer +8'd64;
+                    end
+                    else if (buffer[127:96] == 32'b0) begin
+                        buffer <= buffer << 32;
+                        valid_buffer <= valid_buffer +8'd32;
+                    end
+                    else if (buffer[127:96] == 32'b0) begin
+                        buffer <= buffer << 32;
+                        valid_buffer <= valid_buffer +8'd32;
+                    end
+                    else if (buffer[127:112] == 16'b0) begin
+                        buffer <= buffer << 16;
+                        valid_buffer <= valid_buffer +8'd16;
+                    end
+                    else if (buffer[127:120] == 8'b0) begin
+                        buffer <= buffer << 8;
+                        valid_buffer <= valid_buffer +8'd8;
+                    end
+                    else if (buffer[127:124] == 4'b0) begin
+                        buffer <= buffer << 4;
+                        valid_buffer <= valid_buffer +8'd4;
+                    end
+                    else if (buffer[127:126] == 2'b0) begin
+                        buffer <= buffer << 2;
+                        valid_buffer <= valid_buffer +8'd2;
+                    end
+                    else if (buffer[127] == 1'b0) begin
+                        buffer <= buffer << 1;
+                        valid_buffer <= valid_buffer +8'd1;
+                    end
                     else begin
-                        for (int i = 127; i >= 0; i--) begin
-                            if (buffer[i]) begin
-                                buffer <= buffer << (127 - i);
-                                valid_buffer <= valid_buffer + 8'(127 - i);
-                                break;
-                            end
-                        end
+                        buffer <= buffer;
+                        valid_buffer <= valid_buffer;
                     end
                 end
                 ST_DONE: begin
