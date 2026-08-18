@@ -19,7 +19,7 @@ module Input_Control #(
     input   logic                        htp_ready, 
 
     //Decompress Input Ports
-    output  logic [8*SIG_LEN_V-328-1:0]      decompress_idata,
+    output  logic [63:0]      decompress_idata,
     output  logic                        decompress_valid,
     input   logic                        decompress_ready,
     
@@ -36,7 +36,6 @@ module Input_Control #(
     //Signature 666/1280 bytes, Message 0~1023 bytes, Public Key 897/1793 bytes
     //I   0~83: Signature  84~84+MBL/8 : Message       85+MBL/197~MBL/8 : pk
     //V   0~159: Signature 160~160+MBL/8 : Message     161+MBL/8~385+MBL/8 : pk
-    logic [8*SIG_LEN_V-328-1:0] sig_buffer;
     logic [N*WIDTH-1:0] pk_buffer;
     logic [9:0] sig_first, sig_last, msg_first, msg_last, pk_first, pk_last;
 
@@ -49,7 +48,7 @@ module Input_Control #(
     assign pk_last = (N == 512)? (10'd197 + (message_byte_length >> 3)) : (10'd385 + (message_byte_length >> 3));
 
     assign htp_valid = axi_valid && (((10'd4 >= i_counter)) || ((i_counter >= msg_first) && (msg_last >= i_counter)));
-    assign decompress_valid = axi_valid && (i_counter >= sig_last);
+    assign decompress_valid = axi_valid && (i_counter >= sig_first) && (sig_last >= i_counter);
     assign pk_valid = axi_valid && (i_counter >= pk_last);
 
     //For i_counter
@@ -77,7 +76,7 @@ module Input_Control #(
             axi_ready = htp_ready;
         end
         else if ((state == 4'd1) || (state == 4'd2)) begin
-            axi_ready = (i_counter >= sig_last) ? decompress_ready : 1'b1;
+            axi_ready = (i_counter >= sig_first) ? decompress_ready : 1'b1;
         end
         else if (state == 4'd3) begin
             axi_ready = (i_counter >= pk_last) ? pk_ready : 1'b1;
@@ -85,28 +84,8 @@ module Input_Control #(
     end
 
     assign htp_idata = axi_data;
-    assign decompress_idata = (N == 512)? {sig_buffer[(8*SIG_LEN_I-328)-65 : 0], axi_data, 4912'b0} : {sig_buffer[(8*SIG_LEN_V-328)-65 : 0], axi_data};
-    //4911 = 8*(SIG_LEN_V-SIG_LEN_I)
-    assign pk = {sig_buffer[N*WIDTH-65 : 0], axi_data};
-
-    //For sig_buffer
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            sig_buffer <= 'b0;
-        end 
-        else if (decompress_valid && decompress_ready) begin
-            sig_buffer <= 'b0;
-        end
-        else if ((i_counter >= 10'd4) && (sig_last >= i_counter)) begin
-            if (axi_valid && axi_ready) begin
-                sig_buffer       <= {sig_buffer[(8*SIG_LEN_V-328)-65 : 0], axi_data};
-            end
-        end
-        else begin
-            // Reset counter and buffer when leaving Decompress state or in IDLE
-            sig_buffer       <= 'b0;
-        end
-    end
+    assign decompress_idata = axi_data;
+    assign pk = {pk_buffer[N*WIDTH-65 : 0], axi_data};
 
     //For pk_buffer
     always_ff @(posedge clk or negedge rst_n) begin

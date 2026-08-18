@@ -35,7 +35,7 @@ module Verify_top #(parameter [10:0] N = 512)(
     logic decompress_fail, checknorm_pass;
     logic [2:0] message_last_byte;
     logic [63:0] htp_message_input;
-    logic [8*SIG_LEN_V-328-1:0] decompress_input;
+    logic [63:0] decompress_input;
     logic [N*WIDTH-1:0] pk, pmi, pmo;
     logic [WIDTH -1:0] htp_coef, decompress_coef, pmi_coef, pmo_coef, c_coef, s_2h_coef, s1_coef, checknorm_in1, checknorm_in2;
     logic [1:0] enA, enB, enC;
@@ -189,7 +189,7 @@ module Verify_top #(parameter [10:0] N = 512)(
         .done(htp_done)             //The module finishes
     );
 
-    Decompress u_decompress(
+    Decompress_chunk u_decompress(
         .clk(clk),
         .rst_n(rst_n),
         .start(start),
