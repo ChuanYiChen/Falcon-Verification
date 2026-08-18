@@ -93,7 +93,6 @@ module HashToPoint (
             shake_din       <= 64'd0;
             shake_din_last  <= 1'b0;
             shake_din_last_bytes <= 3'd0;
-            shake_dout_ready <= 1'b0;
         end 
         else begin
             if (start) begin
@@ -104,6 +103,7 @@ module HashToPoint (
                 shake_din_last_bytes <= 3'd0;
             end 
             else begin
+                shake_start     <= 1'b0;
                 case (state)
                     ST_ABSORB: begin
                         if (message_valid) begin
@@ -111,29 +111,51 @@ module HashToPoint (
                             shake_din          <= message;
                             shake_din_last     <= message_last;
                             shake_din_last_bytes <= message_last_bytes;
-                            shake_dout_ready <= shake_dout_valid;
                         end
                     end
-
                     ST_SQUEEZE: begin
                         shake_absorb       <= 1'b0;
-                        shake_dout_ready <= shake_dout_valid;
-                    end
-
-                    ST_DONE: begin
-                        shake_dout_ready <= 1'b1;
                     end
                     default: begin
-                        shake_start     <= shake_start;
                         shake_absorb     <= shake_absorb;
                         shake_din       <= shake_din;
                         shake_din_last  <= shake_din_last;
                         shake_din_last_bytes <= shake_din_last_bytes;
-
                     end
                 endcase
             end
         end
+    end
+    //For shake_dout_ready
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            shake_dout_ready <= 1'b1;
+        end
+        else if (start) begin
+            shake_dout_ready <= 1'b1;
+        end
+        else begin
+            case (state)
+                ST_IDLE: begin
+                    shake_dout_ready <= 1'b1;
+                end
+                ST_SQUEEZE: begin
+                    if ((shake_dout_valid) && (pair_pos != 2'd3)) begin
+                        shake_dout_ready <= 1'b0;
+                    end
+                    else if ((shake_dout_valid) && (!word_valid)) begin
+                        shake_dout_ready <= 1'b0;
+                    end
+                    else begin
+                        shake_dout_ready <= 1'b1;
+                    end
+                end
+                default: begin
+                        shake_dout_ready <= 1'b1;
+                end
+            endcase
+        end
+        
     end
 
     //For message_ready
@@ -173,6 +195,7 @@ module HashToPoint (
             word_q          <= 64'd0;
             word_valid      <= 1'b0;
             pair_pos        <= 2'd0;
+            idx             <= 11'b0;
         end else begin
             if (start) begin 
                 coef            <= 14'd0;
@@ -180,33 +203,51 @@ module HashToPoint (
                 word_q          <= 64'd0;
                 word_valid      <= 1'b0;
                 pair_pos        <= 2'd0;
+                idx             <= 11'b0;
             end else begin
                 case (state)
+                    ST_DONE: begin
+                        coef            <= 14'd0;
+                        coef_valid      <= 1'b0;
+                        word_q          <= 64'd0;
+                        word_valid      <= 1'b0;
+                        pair_pos        <= 2'd0;
+                        idx             <= 11'b0;
+                    end
                     ST_SQUEEZE: begin
                         if (idx < N) begin
                             if (shake_dout_valid) begin
-                                word_q     <= shake_dout;
+                                if (shake_dout_ready) begin
+                                    word_q     <= shake_dout;
+                                end
                                 word_valid <= 1'b1;
                                 pair_pos   <= 2'd0;
                             end
                             if (word_valid && coef_ready) begin
-                                if (sample < KQ) begin
+                                if (sample < KQ) begin                                 
                                     coef        <= sample_mod[13:0];
-                                    coef_valid  <= 1'b1;
+                                    if ((pair_pos != 2'd0) || !coef_valid) begin
+                                        coef_valid  <= word_valid;
+                                    end
                                     idx         <= idx + 1'b1;
                                 end
-
+                                else begin
+                                    coef_valid  <= 1'b0;
+                                end
                                 if (pair_pos == 2'd3) begin
                                     word_valid <= 1'b0;
-                                end else begin
+                                end 
+                                else begin
                                     pair_pos <= pair_pos + 1'b1;
                                 end
+                            end
+                            else begin
+                                coef_valid  <= 1'b0;
                             end
                         end
                     end
                     default: begin
                         coef            <= coef;
-                        coef_valid      <= coef_valid;
                         word_q          <= word_q;
                         word_valid      <= word_valid;
                         pair_pos        <= pair_pos;

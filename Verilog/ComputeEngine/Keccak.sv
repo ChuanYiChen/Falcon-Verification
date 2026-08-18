@@ -64,6 +64,18 @@ module Keccak(
         endcase
     end
 
+    always @(*) begin
+        if (rnd<5'd24) begin
+            for (i = 0; i < 25; i = i + 1)
+                a[i] = s[i];
+            for (x = 0; x < 5; x = x + 1)
+                c[x] = a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20];
+
+            for (x = 0; x < 5; x = x + 1)
+                d[x] = c[(x + 4) % 5] ^ {c[(x + 1) % 5][62:0], c[(x + 1) % 5][63]};
+        end
+    end
+
     // Main permutation sequencer. A start pulse loads the 25-lane state; each
     // active clock performs theta, rho/pi, chi and iota for one round.
     always @(posedge clk or negedge rst_n) begin
@@ -81,57 +93,48 @@ module Keccak(
             rnd   <= 5'd0;
             ready <= 1'b0;
         end else if (rnd < 5'd24) begin
-            for (i = 0; i < 25; i = i + 1)
-                a[i] <= s[i];
-
-            for (x = 0; x < 5; x = x + 1)
-                c[x] <= a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20];
-
-            for (x = 0; x < 5; x = x + 1)
-                d[x] <= c[(x + 4) % 5] ^ {c[(x + 1) % 5][62:0], c[(x + 1) % 5][63]};
-
             for (x = 0; x < 5; x = x + 1) begin
                 for (y = 0; y < 5; y = y + 1) begin
-                    src_idx <= x + 5 * y;
-                    dst_idx <= y + 5 * ((2 * x + 3 * y) % 5);
+                    src_idx = x + 5 * y;
+                    dst_idx = y + 5 * ((2 * x + 3 * y) % 5);
                     case (src_idx)
-                        0:  rho_offset_q <= 0;
-                        1:  rho_offset_q <= 1;
-                        2:  rho_offset_q <= 62;
-                        3:  rho_offset_q <= 28;
-                        4:  rho_offset_q <= 27;
-                        5:  rho_offset_q <= 36;
-                        6:  rho_offset_q <= 44;
-                        7:  rho_offset_q <= 6;
-                        8:  rho_offset_q <= 55;
-                        9:  rho_offset_q <= 20;
-                        10: rho_offset_q <= 3;
-                        11: rho_offset_q <= 10;
-                        12: rho_offset_q <= 43;
-                        13: rho_offset_q <= 25;
-                        14: rho_offset_q <= 39;
-                        15: rho_offset_q <= 41;
-                        16: rho_offset_q <= 45;
-                        17: rho_offset_q <= 15;
-                        18: rho_offset_q <= 21;
-                        19: rho_offset_q <= 8;
-                        20: rho_offset_q <= 18;
-                        21: rho_offset_q <= 2;
-                        22: rho_offset_q <= 61;
-                        23: rho_offset_q <= 56;
-                        default: rho_offset_q <= 14;
+                        0:  rho_offset_q = 0;
+                        1:  rho_offset_q = 1;
+                        2:  rho_offset_q = 62;
+                        3:  rho_offset_q = 28;
+                        4:  rho_offset_q = 27;
+                        5:  rho_offset_q = 36;
+                        6:  rho_offset_q = 44;
+                        7:  rho_offset_q = 6;
+                        8:  rho_offset_q = 55;
+                        9:  rho_offset_q = 20;
+                        10: rho_offset_q = 3;
+                        11: rho_offset_q = 10;
+                        12: rho_offset_q = 43;
+                        13: rho_offset_q = 25;
+                        14: rho_offset_q = 39;
+                        15: rho_offset_q = 41;
+                        16: rho_offset_q = 45;
+                        17: rho_offset_q = 15;
+                        18: rho_offset_q = 21;
+                        19: rho_offset_q = 8;
+                        20: rho_offset_q = 18;
+                        21: rho_offset_q = 2;
+                        22: rho_offset_q = 61;
+                        23: rho_offset_q = 56;
+                        default: rho_offset_q = 14;
                     endcase
                     if (rho_offset_q == 0)
-                        b[dst_idx] <= a[src_idx] ^ d[x];
+                        b[dst_idx] = a[src_idx] ^ d[x];
                     else
-                        b[dst_idx] <= ((a[src_idx] ^ d[x]) << rho_offset_q)
+                        b[dst_idx] = ((a[src_idx] ^ d[x]) << rho_offset_q)
                                    | ((a[src_idx] ^ d[x]) >> (64 - rho_offset_q));
                 end
             end
 
             for (x = 0; x < 5; x = x + 1) begin
                 for (y = 0; y < 5; y = y + 1) begin
-                    dst_idx <= x + 5 * y;
+                    dst_idx = x + 5 * y;
                     s[dst_idx] <= b[dst_idx] ^ ((~b[((x + 1) % 5) + 5 * y]) & b[((x + 2) % 5) + 5 * y]);
                 end
             end
@@ -154,3 +157,4 @@ module Keccak(
     end
 
 endmodule
+
