@@ -278,10 +278,6 @@ module Decompress_chunk(
                         buffer <= buffer << 32;
                         valid_buffer <= valid_buffer +8'd32;
                     end
-                    else if (buffer[127:96] == 32'b0) begin
-                        buffer <= buffer << 32;
-                        valid_buffer <= valid_buffer +8'd32;
-                    end
                     else if (buffer[127:112] == 16'b0) begin
                         buffer <= buffer << 16;
                         valid_buffer <= valid_buffer +8'd16;
