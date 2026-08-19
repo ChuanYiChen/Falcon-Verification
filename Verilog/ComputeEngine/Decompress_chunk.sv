@@ -4,17 +4,17 @@ module Decompress_chunk(
     input  logic                         clk,
     input  logic                         rst_n,
 
-    input  logic                         start,
-    input  logic                         sig_valid,
-    input  logic                         coef_ready,
-    input  logic [63:0]                  sig,        
+    input  logic                         start,       //start to run decompress module
+    input  logic                         sig_valid,   //i_valid
+    input  logic                         coef_ready,  //o_ready
+    input  logic [63:0]                  sig,         //input signature: 64 bits a chunk as the input of this module
     input  logic                         Sec_LV,      //0: Level I, 1: Level V
     
-    output logic [WIDTH-1:0]             coef,
-    output logic                         coef_valid,
+    output logic [WIDTH-1:0]             coef,        //output coefficients
+    output logic                         coef_valid,  //o_valid
     output logic                         sig_ready,   //i_ready 
-    output logic                         done,        // High if all coefficients output or fail somewhere
-    output logic                         fail         // High if output bottom
+    output logic                         done,        // High if output all coefficients or fail somewhere
+    output logic                         fail         // High if output is bottom
 );
 
     logic [10:0] N;
