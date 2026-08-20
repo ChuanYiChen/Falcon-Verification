@@ -10,9 +10,7 @@ export PYTHONPATH := $(PWD)/../model:$(PYTHONPATH)
 ifeq ($(TOPLEVEL_LANG),verilog)
     VERILOG_SOURCES = \
         $(PWD)/../../../Verilog/falcon_pkg.sv \
-        $(PWD)/../../../Verilog/ComputeEngine/Shake256.sv \
-		$(PWD)/../../../Verilog/ComputeEngine/Keccak.sv \
-        $(PWD)/../../../Verilog/ComputeEngine/HashToPoint.sv
+        $(PWD)/../../../Verilog/ComputeEngine/Decompress_chunk.sv
 else
     $(error A valid value (verilog or vhdl) was not provided for TOPLEVEL_LANG=$(TOPLEVEL_LANG))
 endif

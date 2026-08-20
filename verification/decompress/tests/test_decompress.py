@@ -132,7 +132,7 @@ def test_decompress_runner() -> None:
 
     sources = [
         proj_path.parent / "Verilog" / "falcon_pkg.sv",
-        proj_path.parent / "Verilog" / "ComputeEngine" / "Decompress.sv",
+        proj_path.parent / "Verilog" / "ComputeEngine" / "Decompress_chunk.sv",
     ]
 
     runner = get_runner(sim)
