@@ -47,7 +47,7 @@ module Decompress_chunk(
     assign coef_fail = (coef == 'b0) && (buffer[127] == 1);
     assign string_fail = (buffer != 'b0);
 
-    assign coef_valid = (state == ST_GENCOEF) && (idx < N);
+    assign coef_valid = (state == ST_GENCOEF) && (idx < N) && (!coef_fail);
     assign done = (state == ST_DONE);
     assign sig_ready = (state == ST_IDLE) || (state == ST_CONSUME);
 
@@ -226,7 +226,7 @@ module Decompress_chunk(
                 end 
                 ST_GENCOEF: begin
                     if (neg) begin
-                        coef <= -(s_prime + (k << 7));
+                        coef <= Q - (s_prime + (k << 7));
                     end
                     else begin
                         coef <= s_prime + (k << 7);
