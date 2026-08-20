@@ -1,0 +1,11 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1786510466" />
+    <testcase name="decompress_matches_python_model" classname="test_decompress" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/decompress/tests/test_decompress.py" lineno="80" time="0.04506492614746094" sim_time_ns="8720.0" ratio_time="193498.59736741864">
+      <failure error_type="AssertionError" error_msg="Sec_LV=0 mismatch: got 512 coefficients, expected 512&#10;assert [7898, 8457, 8991, 8517, 11193, 9047, ...] == [6123, 2020, 852, 7594, 10131, 2018, ...]" />
+    </testcase>
+    <testcase name="decompress_random_messages_match_python_model" classname="test_decompress" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/decompress/tests/test_decompress.py" lineno="107" time="0.044339895248413086" sim_time_ns="8730.0" ratio_time="196888.1512031187">
+      <failure error_type="AssertionError" error_msg="Sec_LV=0 random message mismatch: got 512 coefficients, expected 512&#10;assert [5005, 11566, 6713, 1537, 4903, 11129, ...] == [7594, 2950, 5313, 11537, 4737, 10840, ...]" />
+    </testcase>
+  </testsuite>
+</testsuites>
