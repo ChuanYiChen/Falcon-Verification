@@ -47,7 +47,7 @@ module Decompress_chunk(
     assign coef_fail = (coef == 'b0) && (buffer[127] == 1);
     assign string_fail = (buffer != 'b0);
 
-    assign coef_valid = (state == ST_GENCOEF) && (idx < N);
+    //assign coef_valid = (state == ST_GENCOEF) && (idx < N);
     assign done = (state == ST_DONE);
     assign sig_ready = (state == ST_IDLE) || (state == ST_CONSUME);
 
@@ -99,6 +99,19 @@ module Decompress_chunk(
                 end
             end       
         end
+        /*else if (state == ST_GENCOEF) begin
+            if (coef_fail) begin
+                state <= ST_GENS;
+            end
+            else if (coef_valid && coef_ready) begin
+                if (idx >= N) begin
+                    state <= ST_CHECKRS; 
+                end
+                else begin
+                    state <= ST_GENS;
+                end
+            end      
+        end*/
         else if (state == ST_CHECKRS) begin
             state <= ST_DONE;
         end
@@ -111,6 +124,29 @@ module Decompress_chunk(
         end
     end
     
+    //For coefficient_valid
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            coef_valid <= 'b0;
+        end
+        else if(start) begin
+            coef_valid <= 'b0;
+        end
+        else if (coef_valid && coef_ready) begin
+            coef_valid <= 'b0;
+        end
+        else if ((state == ST_GENCOEF) && (idx < N)) begin
+            coef_valid <= 'b1;
+        end
+        /*else if ((state == ST_GENCOEF) && (idx < N) && (!coef_fail)) begin
+            coef_valid <= 'b1;
+        end*/
+        else begin
+            coef_valid <= coef_valid;
+        end
+    end
+
+
     //For neg and s_prime
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -171,31 +207,31 @@ module Decompress_chunk(
                         success_genk <= 'b0;
                     end
                     else if (buffer[127:64] == 64'b0) begin
-                        k <= k + 14'd64 - {6'b0, valid_buffer};
+                        k <= k + 14'd64;
                         success_genk <= 'b0;
                     end
                     else if (buffer[127:96] == 32'b0) begin
-                        k <= k + 14'd32 - {6'b0, valid_buffer};
+                        k <= k + 14'd32;
                         success_genk <= 'b0;
                     end
                     else if (buffer[127:112] == 16'b0) begin
-                        k <= k + 14'd16 - {6'b0, valid_buffer};
+                        k <= k + 14'd16;
                         success_genk <= 'b0;
                     end
                     else if (buffer[127:120] == 8'b0) begin
-                        k <= k + 14'd8 - {6'b0, valid_buffer};
+                        k <= k + 14'd8;
                         success_genk <= 'b0;
                     end
                     else if (buffer[127:124] == 4'b0) begin
-                        k <= k + 14'd4 - {6'b0, valid_buffer};
+                        k <= k + 14'd4;
                         success_genk <= 'b0;
                     end
                     else if (buffer[127:126] == 2'b0) begin
-                        k <= k + 14'd2 - {6'b0, valid_buffer};
+                        k <= k + 14'd2;
                         success_genk <= 'b0;
                     end
                     else if (buffer[127] == 1'b0) begin
-                        k <= k + 14'd1 - {6'b0, valid_buffer};
+                        k <= k + 14'd1;
                         success_genk <= 'b0;
                     end
                     else begin
@@ -226,7 +262,7 @@ module Decompress_chunk(
                 end 
                 ST_GENCOEF: begin
                     if (neg) begin
-                        coef <= -(s_prime + (k << 7));
+                        coef <= Q-(s_prime + (k << 7));
                     end
                     else begin
                         coef <= s_prime + (k << 7);
@@ -299,6 +335,8 @@ module Decompress_chunk(
                         valid_buffer <= valid_buffer +8'd1;
                     end
                     else begin
+                        /*buffer <= buffer << 1;
+                        valid_buffer <= valid_buffer + 8'd1;*/
                         buffer <= buffer;
                         valid_buffer <= valid_buffer;
                     end
