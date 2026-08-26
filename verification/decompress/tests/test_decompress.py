@@ -96,8 +96,8 @@ async def run_vector(dut, coefficients: list[int], sec_lv: int, seed: int) -> No
         )
         if coefficient_accepted:
             got.append(signed_coefficient(int(dut.coef.value)))
-            if len(got) <= len(expected):
-                dut._log.info("coefficient %d = %d", len(got) - 1, got[-1])
+            # if len(got) <= len(expected):
+                # dut._log.info("coefficient %d = %d", len(got) - 1, got[-1])
 
         await RisingEdge(dut.clk)
 
@@ -133,14 +133,14 @@ async def decompress_level_i_matches_python_model(dut):
 @cocotb.test()
 async def decompress_level_i_matches_python_model_with_random_valid_coefficient(dut):
     """Level I output matches encoding.decompress with valid coefficient generated."""
-    coefficients_vector = np.load("coefficient_vectors.npy")
+    coefficients_vector = np.load("512_coefficient_vectors.npy")
 
     for i in range(len(coefficients_vector)):
-        print(f"TEST {i}")
+        # print(f"TEST {i}")
         await reset_dut(dut)
         coefficients = coefficients_vector[i]
         await run_vector(dut, coefficients, sec_lv=0, seed=1)
-        print(f"PASSED TEST {i}")
+        # print(f"PASSED TEST {i}")
 
 @cocotb.test()
 async def decompress_level_v_matches_python_model(dut):
@@ -148,6 +148,18 @@ async def decompress_level_v_matches_python_model(dut):
     await reset_dut(dut)
     coefficients = [0, -1, 1, -128, 128, -255, 255, 1024, -1024] + [0] * (N_V - 9)
     await run_vector(dut, coefficients, sec_lv=1, seed=2)
+
+@cocotb.test()
+async def decompress_level_v_matches_python_model_with_random_valid_coefficient(dut):
+    """Level V output matches encoding.decompress with valid coefficient generated."""
+    coefficients_vector = np.load("1024_coefficient_vectors.npy")
+
+    for i in range(len(coefficients_vector)):
+        # print(f"TEST {i}")
+        await reset_dut(dut)
+        coefficients = coefficients_vector[i]
+        await run_vector(dut, coefficients, sec_lv=1, seed=1)
+        # print(f"PASSED TEST {i}")
 
 
 def test_decompress_runner() -> None:
