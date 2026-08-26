@@ -96,8 +96,8 @@ async def run_vector(dut, coefficients: list[int], sec_lv: int, seed: int) -> No
         )
         if coefficient_accepted:
             got.append(signed_coefficient(int(dut.coef.value)))
-            # if len(got) <= len(expected):
-            #     dut._log.info("coefficient %d = %d", len(got) - 1, got[-1])
+            if len(got) <= len(expected):
+                dut._log.info("coefficient %d = %d", len(got) - 1, got[-1])
 
         await RisingEdge(dut.clk)
 
