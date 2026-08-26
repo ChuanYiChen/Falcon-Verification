@@ -44,7 +44,7 @@ module Decompress_chunk(
 
     assign N = (Sec_LV)? N_V : N_I;
     assign need_consume = valid_buffer >= 8'd120;
-    assign coef_fail = (s_prime == 'b0) && (k == 'b0) && (buffer[127] == 1);
+    assign coef_fail = (s_prime == 'b0) && (k == 'b0) && neg;//(buffer[127] == 1);
     assign string_fail = (buffer != 'b0);
 
     //assign coef_valid = (state == ST_GENCOEF) && (idx < N);
