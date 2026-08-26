@@ -1,13 +1,15 @@
 import falcon_pkg::*;
 
 module PolyMul #(parameter int N = 512) (
-    input  logic                  clk,
-    input  logic                  rst_n,
-    input  logic                  start,
-    input  logic [N*WIDTH-1:0]    a_in,
-    input  logic [N*WIDTH-1:0]    b_in,
-    output logic [N*WIDTH-1:0]    prod_out,
-    output logic                  done
+    input  logic                  clk,              //clock
+    input  logic                  rst_n,            //negedge reset
+    input  logic                  start,            //start to do polynomial multiplication
+    input  logic                  prod_out_ready,   //play as the role of o_ready
+    input  logic [N*WIDTH-1:0]    a_in,             //first polynomial input (N coefficients each WIDTH bits)
+    input  logic [N*WIDTH-1:0]    b_in,             //second polynomial input (N coefficients each WIDTH bits)
+    output logic                  in_ready,         //play a the role of i_ready
+    output logic [N*WIDTH-1:0]    prod_out,         //polynomial output (N coefficients each WIDTH bits)
+    output logic                  done              //polynomial multiplication finish
 );
 
     localparam [2:0] ST_IDLE      = 0;
@@ -62,6 +64,8 @@ module PolyMul #(parameter int N = 512) (
         .done(c_done)
     );
 
+    assign in_ready = (state == IDLE);
+
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state <= ST_IDLE;
@@ -110,12 +114,7 @@ module PolyMul #(parameter int N = 512) (
                 end
 
                 ST_DONE: begin
-                    if (start) begin
-                        a_start <= 1'b1;
-                        b_start <= 1'b1;
-                        c_start <= 1'b0;
-                        state <= ST_WAIT_NTT;
-                    end else begin
+                    if (prod_out_ready) begin
                         state <= ST_IDLE;
                     end
                 end
