@@ -64,7 +64,7 @@ module PolyMul #(parameter int N = 512) (
         .done(c_done)
     );
 
-    assign in_ready = (state == IDLE);
+    assign in_ready = (state == ST_IDLE);
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
