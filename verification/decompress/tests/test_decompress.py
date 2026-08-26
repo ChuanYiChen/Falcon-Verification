@@ -4,6 +4,7 @@ import os
 import random
 import sys
 from pathlib import Path
+import numpy as np
 
 import cocotb
 from cocotb.clock import Clock
@@ -67,8 +68,8 @@ def signed_coefficient(value: int) -> int:
 
 async def run_vector(dut, coefficients: list[int], sec_lv: int, seed: int) -> None:
     chunks, expected = encode_input(coefficients, sec_lv)
-    print(f"EXPECTED: {expected[:10]}")
-    print("=" * 10)
+    # print(f"EXPECTED: {expected[:10]}")
+    # print("=" * 10)
 
     dut.Sec_LV.value = sec_lv
     dut.start.value = 1
@@ -79,7 +80,7 @@ async def run_vector(dut, coefficients: list[int], sec_lv: int, seed: int) -> No
     chunk_index = 0
     sig_pending = False
 
-    while len(got) < len(expected) or chunk_index < len(chunks):
+    while len(got) < len(expected):
         if not sig_pending and chunk_index < len(chunks) and int(dut.sig_ready.value):
             dut.sig.value = chunks[chunk_index]
             dut.sig_valid.value = 1
@@ -95,8 +96,8 @@ async def run_vector(dut, coefficients: list[int], sec_lv: int, seed: int) -> No
         )
         if coefficient_accepted:
             got.append(signed_coefficient(int(dut.coef.value)))
-            if len(got) <= 12:
-                dut._log.info("coefficient %d = %d", len(got) - 1, got[-1])
+            # if len(got) <= len(expected):
+            #     dut._log.info("coefficient %d = %d", len(got) - 1, got[-1])
 
         await RisingEdge(dut.clk)
 
@@ -129,8 +130,19 @@ async def decompress_level_i_matches_python_model(dut):
     coefficients = [0, 1, -1, 127, -127, 128, -128, 255, -255] + [0] * (N_I - 9)
     await run_vector(dut, coefficients, sec_lv=0, seed=1)
 
+@cocotb.test()
+async def decompress_level_i_matches_python_model_with_random_valid_coefficient(dut):
+    """Level I output matches encoding.decompress with valid coefficient generated."""
+    coefficients_vector = np.load("coefficient_vectors.npy")
 
-# @cocotb.test()
+    for i in range(len(coefficients_vector)):
+        print(f"TEST {i}")
+        await reset_dut(dut)
+        coefficients = coefficients_vector[i]
+        await run_vector(dut, coefficients, sec_lv=0, seed=1)
+        print(f"PASSED TEST {i}")
+
+@cocotb.test()
 async def decompress_level_v_matches_python_model(dut):
     """Level V output matches encoding.decompress with backpressure applied."""
     await reset_dut(dut)
