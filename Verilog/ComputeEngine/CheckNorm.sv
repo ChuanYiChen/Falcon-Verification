@@ -6,8 +6,8 @@ module CheckNorm (
 
     input  logic               i_valid,
     input  logic               o_ready,
-    input  logic [WIDTH-1:0]   s1_din,      // Unsigned [0, 12288]
-    input  logic [WIDTH-1:0]   s2_din,      // Unsigned [0, 12288]
+    input  logic [WIDTH-1:0]   s1_din,      //coefficient of s1, unsigned WIDTH bits with value in [0, 12288]
+    input  logic [WIDTH-1:0]   s2_din,      //coefficient of s2, unsigned WIDTH bits with value in [0, 12288]
     input  logic               Sec_LV,      //0: Level I, 1: Level V
     
     // Downstream Status Interface

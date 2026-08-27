@@ -9,11 +9,11 @@ module Addq (
     output logic i_ready,
     output logic o_valid,
 
-    input  logic [WIDTH-1:0] din1,
-    input  logic [WIDTH-1:0] din2,
-    output logic signed [WIDTH-1:0] dout,
+    input  logic [WIDTH-1:0] din1,              //Input one coefficient of first polynomial, WIDTH bits
+    input  logic [WIDTH-1:0] din2,              //Input one coefficient of second polynomial, WIDTH bits
+    output logic signed [WIDTH-1:0] dout,       //Output one coefficient of result polynomial, WIDTH bits, that is dout = din1+(-)din2
 
-    input  logic sub   // 0:Add, 1:Sub
+    input  logic sub                            // 0:Add, 1:Sub
 );
 
     logic [WIDTH:0] op;
