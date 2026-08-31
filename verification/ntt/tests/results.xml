@@ -1,0 +1,8 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1788143804" />
+    <testcase name="ntt_matches_python_model" classname="test_ntt" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/ntt/tests/test_ntt.py" lineno="59" time="0.012026786804199219" sim_time_ns="41.0" ratio_time="3409.056855126477">
+      <failure error_type="ValueError" error_msg="Can't convert LogicArray to int: it contains non-0/1 values" />
+    </testcase>
+  </testsuite>
+</testsuites>
