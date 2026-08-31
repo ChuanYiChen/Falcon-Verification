@@ -1,0 +1,8 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1787744562" />
+    <testcase name="polymul_matches_cyclic_convolution" classname="test_polymul" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/polymul/tests/test_polymul.py" lineno="70" time="0.051316022872924805" sim_time_ns="80.0" ratio_time="1558.967268334611">
+      <failure error_type="AssertionError" error_msg="polynomial mismatch: got=[0, 0, 0, 0, 0, 0, 0, 0], expected=[0, 1, 0, 0, 0, 0, 0, 0]&#10;assert [0, 0, 0, 0, 0, 0, ...] == [0, 1, 0, 0, 0, 0, ...]" />
+    </testcase>
+  </testsuite>
+</testsuites>
