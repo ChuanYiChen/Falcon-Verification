@@ -1,0 +1,11 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1788489144" />
+    <testcase name="accepts_norm_level_i_bound" classname="test_checknorm" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/checknorm/tests/test_checknorm.py" lineno="89" time="0.014292001724243164" sim_time_ns="5170.0" ratio_time="361740.7903911919" />
+    <testcase name="rejects_norm_level_i_bound" classname="test_checknorm" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/checknorm/tests/test_checknorm.py" lineno="102" time="0.013614177703857422" sim_time_ns="5170.0" ratio_time="379751.1764911912" />
+    <testcase name="random_norm_level_i_bound" classname="test_checknorm" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/checknorm/tests/test_checknorm.py" lineno="115" time="0.5029342174530029" sim_time_ns="103810.0" ratio_time="206408.7039567965" />
+    <testcase name="accepts_norm_level_v_bound" classname="test_checknorm" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/checknorm/tests/test_checknorm.py" lineno="127" time="0.026533842086791992" sim_time_ns="10290.0" ratio_time="387806.63449874654" />
+    <testcase name="rejects_norm_level_v_bound" classname="test_checknorm" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/checknorm/tests/test_checknorm.py" lineno="140" time="0.02577996253967285" sim_time_ns="10289.999999999985" ratio_time="399147.2052825786" />
+    <testcase name="random_norm_level_v_bound" classname="test_checknorm" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/checknorm/tests/test_checknorm.py" lineno="153" time="0.500765323638916" sim_time_ns="103810.0" ratio_time="207302.69269773495" />
+  </testsuite>
+</testsuites>
