@@ -1,0 +1,6 @@
+NTT: 
+Open two memories to store Z_q/x^N+1 roots and inverse of 1~12288
+Verify_top:
+HTP and Decompress module has verified, connect them together and test the "small" verify_top
+Next meeting:
+To be determined (Will discuss in 9/11 18:00)
