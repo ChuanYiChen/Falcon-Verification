@@ -18,11 +18,13 @@ module Verify_top #(parameter [10:0] N = 512)(
 
     localparam [3:0] ST_IDLE                  = 0;
     localparam [3:0] ST_HTP                   = 1;   //hash to point state
-    localparam [3:0] ST_DECOMPRESS            = 2;   //decompress state
-    localparam [3:0] ST_POLYMUL               = 3;   //polynomial multiplication state
-    localparam [3:0] ST_POLYSUB               = 4;   //polynomial subtraction state
-    localparam [3:0] ST_CHECKNORM             = 5;   //norm check state
-    localparam [3:0] ST_DONE                  = 6;
+    localparam [3:0] ST_HTP_STORE             = 2;   //Store htp polynomial to POLYRAM 
+    localparam [3:0] ST_DECOMPRESS            = 3;   //decompress state
+    localparam [3:0] ST_DECOMPRESS_STORE      = 4;   //Store decompress polynomial to POLYRAM
+    localparam [3:0] ST_POLYMUL               = 5;   //polynomial multiplication state
+    localparam [3:0] ST_POLYSUB               = 6;   //polynomial subtraction state
+    localparam [3:0] ST_CHECKNORM             = 7;   //norm check state
+    localparam [3:0] ST_DONE                  = 8;
 
     logic [3:0] state;
     logic htp_valid, decompress_valid;   //i_valid
@@ -41,7 +43,7 @@ module Verify_top #(parameter [10:0] N = 512)(
     
     assign message_last_byte = message_byte_length[2:0];
     assign pass = !fail;
-    assign done = (state == ST_DONE);
+    assign done = (state == ST_DONE) && poly_accessor_done;
 
     //For finite state machine
     always_ff @(posedge clk or negedge rst_n) begin
@@ -57,16 +59,26 @@ module Verify_top #(parameter [10:0] N = 512)(
                 end 
                 ST_HTP: begin
                     if (htp_done) begin
+                        state <= ST_HTP_STORE;
+                    end
+                end
+                 ST_HTP_STORE: begin
+                    if (poly_accessor_done) begin
                         state <= ST_DECOMPRESS;
                     end
                 end
                 ST_DECOMPRESS: begin
                     if (decompress_done) begin
-                        state <= ST_DONE;      //Temporarily set for testing
+                        state <= ST_DECOMPRESS_STORE;      
                     end
                 end
+                ST_DECOMPRESS: begin
+                    if (poly_accessor_done) begin
+                        state <= ST_DONE;      //Temporarily set for testing
+                    end
+                end                
                 ST_DONE: begin
-                    state <= ST_IDLE;
+                        state <= ST_IDLE;
                 end
                 default: state <= state;
             endcase
@@ -112,7 +124,6 @@ module Verify_top #(parameter [10:0] N = 512)(
         .done(input_control_done)
     );
 
-
     HashToPoint u_htp(
         .clk(clk),
         .rst_n(rst_n),
@@ -129,7 +140,6 @@ module Verify_top #(parameter [10:0] N = 512)(
         .coef_valid(htp_coef_valid),     //o_valid
         .done(htp_done)             //The module finishes
     );
-
 
     Decompress_chunk u_decompress(
         .clk(clk),
