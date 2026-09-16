@@ -72,7 +72,7 @@ module Verify_top #(parameter [10:0] N = 512)(
                         state <= ST_DECOMPRESS_STORE;      
                     end
                 end
-                ST_DECOMPRESS: begin
+                ST_DECOMPRESS_STORE: begin
                     if (poly_accessor_done) begin
                         state <= ST_DONE;      //Temporarily set for testing
                     end
