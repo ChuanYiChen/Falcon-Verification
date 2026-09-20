@@ -1,0 +1,13 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1789792904" />
+    <testcase name="reset_clears_all_outputs" classname="test_poly_accessor" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/poly_accessor/tests/test_poly_accessor.py" lineno="159" time="0.0006320476531982422" sim_time_ns="30.0" ratio_time="47464.77555639381" />
+    <testcase name="coef_ready_is_purely_combinational" classname="test_poly_accessor" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/poly_accessor/tests/test_poly_accessor.py" lineno="173" time="0.00010895729064941406" sim_time_ns="9.999999999999996" ratio_time="91779.08096280084" />
+    <testcase name="full_htp_transfer_writes_expected_polynomial" classname="test_poly_accessor" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/poly_accessor/tests/test_poly_accessor.py" lineno="206" time="0.0007770061492919922" sim_time_ns="200.0" ratio_time="257398.22031297945" />
+    <testcase name="full_decompress_transfer_writes_expected_polynomial" classname="test_poly_accessor" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/poly_accessor/tests/test_poly_accessor.py" lineno="237" time="0.0007290840148925781" sim_time_ns="190.0" ratio_time="260600.9679529104" />
+    <testcase name="bubbles_in_valid_do_not_advance_the_counter" classname="test_poly_accessor" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/poly_accessor/tests/test_poly_accessor.py" lineno="263" time="0.0012447834014892578" sim_time_ns="350.0" ratio_time="281173.41505458724" />
+    <testcase name="idle_state_holds_registered_outputs" classname="test_poly_accessor" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/poly_accessor/tests/test_poly_accessor.py" lineno="292" time="0.0009829998016357422" sim_time_ns="150.0" ratio_time="152594.1304875091" />
+    <testcase name="reset_mid_transfer_clears_registers_immediately" classname="test_poly_accessor" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/poly_accessor/tests/test_poly_accessor.py" lineno="318" time="0.0005080699920654297" sim_time_ns="120.00000000000011" ratio_time="236187.93054903822" />
+    <testcase name="random_stress_matches_shadow_model" classname="test_poly_accessor" file="/Users/henderson/Documents/Research/FALCON/Falcon-Verification/verification/poly_accessor/tests/test_poly_accessor.py" lineno="349" time="0.011853694915771484" sim_time_ns="3020.0" ratio_time="254772.88064684824" />
+  </testsuite>
+</testsuites>
