@@ -1,0 +1,8 @@
+poly_accessor verification done
+ntt_pkg.sv done (parameters needed for ntt module)
+verify_top verification has some problem 
+gtkwave generated
+htp and decompress do not receive input successfully, maybe something went wrong in Input_Control
+Todo:
+Check what's wrong with verify_top
+Next Meeting: 2026/10/5 Online
