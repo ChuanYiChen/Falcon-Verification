@@ -32,7 +32,7 @@ module Poly_Accessor #(
     localparam [6:0] htp_addr = 0;
     localparam [6:0] decompress_addr = 1;
 
-    assign htp_coef_ready = (state == 4'd1) && htp_coef_valid; 
+    assign htp_coef_ready = (state == 4'd1); 
     assign decompress_coef_ready = (state == 4'd2) && decompress_coef_valid; 
 
     //For i_counter

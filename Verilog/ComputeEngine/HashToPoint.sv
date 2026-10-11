@@ -114,7 +114,9 @@ module HashToPoint (
                         end
                     end
                     ST_SQUEEZE: begin
-                        shake_absorb       <= 1'b0;
+                        if (shake_ready == 1'b1) begin
+                            shake_absorb       <= 1'b0;
+                        end
                     end
                     default: begin
                         shake_absorb     <= shake_absorb;
