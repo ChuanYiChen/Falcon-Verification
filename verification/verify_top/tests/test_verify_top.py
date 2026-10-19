@@ -74,8 +74,9 @@ def signed_coefficient(value: int) -> int:
 # --------------------------------------------------------------------------
 # Reset / low-level helpers
 # --------------------------------------------------------------------------
-async def reset_dut(dut) -> None:
-    cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
+async def reset_dut(dut, start_clock: bool = True) -> None:
+    if start_clock:
+        cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
 
     dut.rst_n.value = 0
     dut.start.value = 0
@@ -178,6 +179,65 @@ async def read_polyram_coeffs(dut, tag: int, count: int, signed: bool) -> list[i
     return out
 
 
+class HtpCoefMonitor:
+    """Passive monitor on the HashToPoint -> Poly_Accessor coefficient stream.
+
+    Records every htp_coef that is actually handed over, i.e. every cycle in
+    which both htp_coef_valid (HashToPoint's o_valid) and htp_coef_ready
+    (Poly_Accessor's o_ready) are high. This checks HashToPoint's output
+    directly, independent of how Poly_Accessor/PolyRAM store it, so a
+    mismatch here points at HashToPoint while a mismatch only in PolyRAM
+    points at the storage path.
+    """
+
+    def __init__(self, dut) -> None:
+        self.dut = dut
+        self.coeffs: list[int] = []
+        self.valid_without_ready = 0  # coefficients presented but not accepted
+        self._task = None
+
+    def start(self) -> None:
+        self._task = cocotb.start_soon(self._run())
+
+    def stop(self) -> None:
+        if self._task is not None:
+            self._task.cancel()
+            self._task = None
+
+    async def _run(self) -> None:
+        while True:
+            await RisingEdge(self.dut.clk)
+            valid = int(self.dut.htp_coef_valid.value)
+            ready = int(self.dut.htp_coef_ready.value)
+            if valid and ready:
+                self.coeffs.append(int(self.dut.htp_coef.value))
+            elif valid:
+                self.valid_without_ready += 1
+
+
+def check_htp_coeffs(dut, monitor: HtpCoefMonitor, expected: list[int]) -> None:
+    """Compare the coefficients captured on the HTP output port against the model."""
+    got = monitor.coeffs
+    n = len(expected)
+
+    assert all(0 <= c < Q for c in got), (
+        f"HTP emitted out-of-range coefficient(s) (must be in [0, Q)): "
+        f"{[(i, c) for i, c in enumerate(got) if not 0 <= c < Q][:8]}"
+    )
+    first_bad = next((i for i in range(min(len(got), n)) if got[i] != expected[i]), None)
+    assert first_bad is None, (
+        f"HTP output coefficient mismatch at index {first_bad}: "
+        f"got {got[first_bad]} expected {expected[first_bad]} "
+        f"(got[{first_bad}:{first_bad + 8}]={got[first_bad:first_bad + 8]}, "
+        f"expected[{first_bad}:{first_bad + 8}]={expected[first_bad:first_bad + 8]})"
+    )
+    assert len(got) == n, (
+        f"HTP emitted {len(got)} accepted coefficients, expected exactly {n} "
+        f"({monitor.valid_without_ready} more were presented without ready)"
+    )
+    dut._log.info("HTP output stream matches model: %d coefficients", n)
+
+
 def dump_state(dut, label: str) -> None:
     """Diagnostic snapshot of the internal FSMs, useful when iterating on stimulus timing."""
     dut._log.info(
@@ -229,11 +289,16 @@ async def run_transaction(
     dut.Sec_LV.value = sec_lv
     dut.message_byte_length.value = len(message)
 
-    cocotb.start_soon(axi_word_driver(dut, beats))
-
     dut.start.value = 1
     await RisingEdge(dut.clk)
     dut.start.value = 0
+
+    # Only begin streaming once `start` has moved Verify_top out of ST_IDLE.
+    # In ST_IDLE Input_Control still reports axi_ready=1 (HashToPoint's
+    # message_ready resets high), so a beat offered alongside `start` would be
+    # consumed while HashToPoint is idle and silently dropped, shifting every
+    # later word by one slot.
+    cocotb.start_soon(axi_word_driver(dut, beats))
 
     # Wait until Poly_Accessor has written all N decompress coefficients
     # (its i_counter wraps back to 0 the same cycle it reaches N -- see
@@ -295,6 +360,35 @@ async def test_verify_top_htp_and_decompress_match_model(dut):
         "ST_DECOMPRESS_STORE lockup documented above has been fixed and "
         "this assertion (and the surrounding comment) should be revisited"
     )
+
+
+@cocotb.test()
+async def test_verify_top_htp_output_coefficients(dut):
+    """The coefficients HashToPoint emits on its output port match the model.
+
+    Unlike the PolyRAM checks, this observes htp_coef on the
+    HashToPoint/Poly_Accessor handshake, so it tests HashToPoint itself.
+    Covers several message lengths, including multiples of 8 bytes and a
+    single byte, to exercise message_last_bytes handling.
+    """
+    vectors = [
+        (bytes(range(NONCE_LEN)), b"Falcon Verify_top testbench message!"),  # 37 bytes
+        (bytes((i * 7 + 3) % 256 for i in range(NONCE_LEN)), b"exactly-sixteen!"),  # 16 bytes
+        (bytes(255 - i for i in range(NONCE_LEN)), b"x"),  # 1 byte
+    ]
+    s2 = [0] * N_I
+
+    for i, (nonce, message) in enumerate(vectors):
+        await reset_dut(dut, start_clock=(i == 0))
+
+        monitor = HtpCoefMonitor(dut)
+        monitor.start()
+        await run_transaction(dut, nonce, message, s2, sec_lv=0)
+        monitor.stop()
+
+        expected = model_hash_to_point(nonce + message, sec_lv=0)
+        dut._log.info("Checking HTP output for %d-byte message %r", len(message), message)
+        check_htp_coeffs(dut, monitor, expected)
 
 
 @cocotb.test()
