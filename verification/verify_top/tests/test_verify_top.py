@@ -300,23 +300,20 @@ async def run_transaction(
     # later word by one slot.
     cocotb.start_soon(axi_word_driver(dut, beats))
 
-    # Wait until Poly_Accessor has written all N decompress coefficients
-    # (its i_counter wraps back to 0 the same cycle it reaches N -- see
-    # Poly_Accessor.sv's i_counter always_ff), which per the RTL-quirk
-    # analysis below is the last of the two writes to actually finish.
-    saw_decompress_progress = False
+    # Run until Decompress_chunk itself reports it has finished (all
+    # coefficients emitted, or it failed). Do not infer completion from
+    # Poly_Accessor.i_counter: it is already 0 when the first decompress
+    # coefficient appears, so that check ends the wait almost immediately.
     for cyc in range(timeout_cycles):
         await RisingEdge(dut.clk)
         if log_every and cyc % log_every == 0:
             dump_state(dut, f"cyc={cyc}")
-        if int(dut.decompress_coef_ready.value):
-            saw_decompress_progress = True
-        if saw_decompress_progress and int(dut.u_poly_accessor.i_counter.value) == 0 and int(dut.state.value) != 1:
-            # i_counter just wrapped after reaching N while writing decompress coeffs.
+        if int(dut.u_decompress.done.value):
             break
     else:
         dump_state(dut, "TIMEOUT")
-        raise AssertionError("Timed out waiting for the decompress PolyRAM write to complete")
+        raise AssertionError("Timed out waiting for Decompress_chunk to finish")
+    dump_state(dut, "decompress done")
 
     # Give the write a cycle to fully settle in PolyRAM before reading it.
     await RisingEdge(dut.clk)
