@@ -18,13 +18,11 @@ module Verify_top #(parameter [10:0] N = 512)(
 
     localparam [3:0] ST_IDLE                  = 0;
     localparam [3:0] ST_HTP                   = 1;   //hash to point state
-    localparam [3:0] ST_HTP_STORE             = 2;   //Store htp polynomial to POLYRAM 
-    localparam [3:0] ST_DECOMPRESS            = 3;   //decompress state
-    localparam [3:0] ST_DECOMPRESS_STORE      = 4;   //Store decompress polynomial to POLYRAM
-    localparam [3:0] ST_POLYMUL               = 5;   //polynomial multiplication state
-    localparam [3:0] ST_POLYSUB               = 6;   //polynomial subtraction state
-    localparam [3:0] ST_CHECKNORM             = 7;   //norm check state
-    localparam [3:0] ST_DONE                  = 8;
+    localparam [3:0] ST_DECOMPRESS            = 2;   //decompress state
+    localparam [3:0] ST_POLYMUL               = 3;   //polynomial multiplication state
+    localparam [3:0] ST_POLYSUB               = 4;   //polynomial subtraction state
+    localparam [3:0] ST_CHECKNORM             = 5;   //norm check state
+    localparam [3:0] ST_DONE                  = 6;
 
     logic [3:0] state;
     logic htp_valid, decompress_valid;   //i_valid
@@ -59,24 +57,14 @@ module Verify_top #(parameter [10:0] N = 512)(
                 end 
                 ST_HTP: begin
                     if (htp_done) begin
-                        state <= ST_HTP_STORE;
-                    end
-                end
-                 ST_HTP_STORE: begin
-                    if (poly_accessor_done) begin
                         state <= ST_DECOMPRESS;
                     end
                 end
                 ST_DECOMPRESS: begin
                     if (decompress_done) begin
-                        state <= ST_DECOMPRESS_STORE;      
+                        state <= ST_DONE;      
                     end
-                end
-                ST_DECOMPRESS_STORE: begin
-                    if (poly_accessor_done) begin
-                        state <= ST_DONE;      //Temporarily set for testing
-                    end
-                end                
+                end           
                 ST_DONE: begin
                         state <= ST_IDLE;
                 end
